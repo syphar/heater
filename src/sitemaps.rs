@@ -27,30 +27,27 @@ pub async fn get_inner<T: IntoUrl + Send>(
 
     let response = client.get(url).send().await?;
 
-    if response.status().is_success() {
-        let text = response.text().await?;
-        let parser = SiteMapReader::new(text.as_bytes());
-        for entity in parser {
-            match entity {
-                SiteMapEntity::Url(url_entry) => match url_entry.loc {
-                    Location::None => {}
-                    Location::Url(url) => result.push(url),
-                    Location::ParseErr(err) => debug!("could not parse entry url: {:?}", err),
-                },
-                SiteMapEntity::SiteMap(sitemap_entry) => match sitemap_entry.loc {
-                    Location::None => {}
-                    Location::Url(url) => {
-                        let mut urls = get_inner(client.clone(), url).await?;
-                        result.append(&mut urls);
-                    }
-                    Location::ParseErr(err) => debug!("could not parse sitemap url: {:?}", err),
-                },
-                SiteMapEntity::Err(_) => {
-                    unimplemented!();
+    let text = response.text().await?;
+    let parser = SiteMapReader::new(text.as_bytes());
+    for entity in parser {
+        match entity {
+            SiteMapEntity::Url(url_entry) => match url_entry.loc {
+                Location::None => {}
+                Location::Url(url) => result.push(url),
+                Location::ParseErr(err) => debug!("could not parse entry url: {:?}", err),
+            },
+            SiteMapEntity::SiteMap(sitemap_entry) => match sitemap_entry.loc {
+                Location::None => {}
+                Location::Url(url) => {
+                    let mut urls = get_inner(client.clone(), url).await?;
+                    result.append(&mut urls);
                 }
+                Location::ParseErr(err) => debug!("could not parse sitemap url: {:?}", err),
+            },
+            SiteMapEntity::Err(_) => {
+                unimplemented!();
             }
         }
-    } else {
     }
 
     Ok(result)

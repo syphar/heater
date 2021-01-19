@@ -3,6 +3,7 @@ use clap::{App, Arg};
 use log::info;
 use url::Url;
 
+mod heater;
 mod sitemaps;
 
 #[tokio::main]
@@ -26,6 +27,9 @@ pub async fn main() -> Result<()> {
     let urls: Vec<Url> = sitemaps::get(sitemap_url).await?;
 
     info!("... found {} URLs", urls.len());
+
+    info!("running heater...");
+    heater::heat(urls.iter().cloned()).await?;
 
     Ok(())
 }
