@@ -1,6 +1,6 @@
 use async_recursion::async_recursion;
 use log::{debug, info};
-use reqwest::IntoUrl;
+use reqwest::{Client, IntoUrl};
 use sitemap::{
     reader::{SiteMapEntity, SiteMapReader},
     structs::Location,
@@ -12,24 +12,20 @@ use url::Url;
 pub enum SiteMapError {
     #[error("HTTP error")]
     RequestError(#[from] reqwest::Error),
-    // #[error("data store disconnected")]
-    // Disconnect(#[from] io::Error),
-    // #[error("the data for key `{0}` is not available")]
-    // Redaction(String),
-    // #[error("invalid header (expected {expected:?}, found {found:?})")]
-    // InvalidHeader {
-    //     expected: String,
-    //     found: String,
-    // },
-    // #[error("unknown data store error")]
-    // Unknown,
+}
+
+pub async fn get<T: IntoUrl + Send>(url: T) -> Result<Vec<Url>, SiteMapError> {
+    get_inner(Client::new(), url).await
 }
 
 #[async_recursion]
-pub async fn get<T: IntoUrl + Send>(url: T) -> Result<Vec<Url>, SiteMapError> {
+pub async fn get_inner<T: IntoUrl + Send>(
+    client: Client,
+    url: T,
+) -> Result<Vec<Url>, SiteMapError> {
     let mut result: Vec<Url> = Vec::new();
 
-    let response = reqwest::get(url).await?;
+    let response = client.get(url).send().await?;
 
     if response.status().is_success() {
         let text = response.text().await?;
@@ -44,7 +40,7 @@ pub async fn get<T: IntoUrl + Send>(url: T) -> Result<Vec<Url>, SiteMapError> {
                 SiteMapEntity::SiteMap(sitemap_entry) => match sitemap_entry.loc {
                     Location::None => {}
                     Location::Url(url) => {
-                        let mut urls = get(url).await?;
+                        let mut urls = get_inner(client.clone(), url).await?;
                         result.append(&mut urls);
                     }
                     Location::ParseErr(err) => debug!("could not parse sitemap url: {:?}", err),
