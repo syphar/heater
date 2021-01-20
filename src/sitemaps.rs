@@ -19,10 +19,7 @@ pub async fn get<T: IntoUrl + Send>(url: T) -> Result<Vec<Url>, SiteMapError> {
 }
 
 #[async_recursion]
-pub async fn get_inner<T: IntoUrl + Send>(
-    client: Client,
-    url: T,
-) -> Result<Vec<Url>, SiteMapError> {
+async fn get_inner<T: IntoUrl + Send>(client: Client, url: T) -> Result<Vec<Url>, SiteMapError> {
     let mut result: Vec<Url> = Vec::new();
 
     let response = client.get(url).send().await?;
