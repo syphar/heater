@@ -11,23 +11,27 @@ pub enum HeatingError {
     RequestError(#[from] reqwest::Error),
 }
 
+//https://stackoverflow.com/questions/51044467/how-can-i-perform-parallel-asynchronous-http-get-requests-with-reqwest 
 pub async fn heat<T: 'static + IntoUrl + Send>(
     urls: impl Iterator<Item = T>,
 ) -> Result<(), HeatingError> {
     let client = Client::new();
 
-    let stats = future::join_all(urls.map(|url| {
-        let client = client.clone();
-        tokio::spawn(async move {
-            let start = Instant::now();
+    let stats: Vec<_> = stream::iter(urls)
+        .map(|url| {
+            let client = client.clone();
+            tokio::spawn(async move {
+                let start = Instant::now();
 
-            match client.get(url).send().await {
-                Ok(response) => Ok((response.status(), start.elapsed())),
-                Err(err) => Err(err),
-            }
+                match client.get(url).send().await {
+                    Ok(response) => Ok((response.status(), start.elapsed())),
+                    Err(err) => Err(err),
+                }
+            })
         })
-    }))
-    .await;
+        .buffer_unordered(num_cpus::get())
+        .collect()
+        .await;
 
     for s in stats {
         if let Ok(result) = s {
