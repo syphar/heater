@@ -4,7 +4,6 @@ use histogram::Histogram;
 use reqwest::{Client, IntoUrl, StatusCode};
 use std::time::Instant;
 
-//https://stackoverflow.com/questions/51044467/how-can-i-perform-parallel-asynchronous-http-get-requests-with-reqwest
 pub async fn heat<T: 'static + IntoUrl + Send>(
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Histogram) {
@@ -23,9 +22,10 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
             })
         })
         .buffer_unordered(num_cpus::get())
-        .map(|join_result| join_result.unwrap_or_else(|err| panic!("tokio error: {:?}", err)))
-        .map(|request_result| {
-            request_result.unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
+        .map(|result| {
+            result
+                .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
+                .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
         })
         .collect()
         .await;
@@ -39,7 +39,7 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
     let mut histogram = Histogram::new();
 
     for (_, elapsed) in stats {
-        histogram.increment(elapsed.as_millis() as u64);
+        histogram.increment(elapsed.as_millis() as u64).unwrap();
     }
 
     (counts, histogram)
