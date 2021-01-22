@@ -1,20 +1,13 @@
-use futures::future;
+use counter::Counter;
 use futures::{stream, StreamExt};
-use log::debug;
-use reqwest::{Client, IntoUrl, Response, StatusCode};
-use std::time::{Duration, Instant};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum HeatingError {
-    #[error("HTTP error")]
-    RequestError(#[from] reqwest::Error),
-}
+use histogram::Histogram;
+use reqwest::{Client, IntoUrl, StatusCode};
+use std::time::Instant;
 
 //https://stackoverflow.com/questions/51044467/how-can-i-perform-parallel-asynchronous-http-get-requests-with-reqwest
 pub async fn heat<T: 'static + IntoUrl + Send>(
     urls: impl Iterator<Item = T>,
-) -> Result<(), HeatingError> {
+) -> (Counter<StatusCode>, Histogram) {
     let client = Client::new();
 
     let stats: Vec<_> = stream::iter(urls)
@@ -30,18 +23,24 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
             })
         })
         .buffer_unordered(num_cpus::get())
+        .map(|join_result| join_result.unwrap_or_else(|err| panic!("tokio error: {:?}", err)))
+        .map(|request_result| {
+            request_result.unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
+        })
         .collect()
         .await;
 
-    for stat in stats {
-        match stat {
-            Ok(result) => match result {
-                Ok((status, time)) => debug!("stats: {:?} / {:?}", status, time),
-                Err(err) => debug!("error: {:?}", err),
-            },
-            Err(err) => panic!("tokio join-error: {:?}", err),
-        }
+    let counts = stats
+        .iter()
+        .map(|(status, _)| status)
+        .cloned()
+        .collect::<Counter<_>>();
+
+    let mut histogram = Histogram::new();
+
+    for (_, elapsed) in stats {
+        histogram.increment(elapsed.as_millis() as u64);
     }
 
-    Ok(())
+    (counts, histogram)
 }

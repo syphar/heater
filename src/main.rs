@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{App, Arg};
-use log::info;
+use log::{debug, info};
 use url::Url;
 
 mod heater;
@@ -29,7 +29,16 @@ pub async fn main() -> Result<()> {
     info!("... found {} URLs", urls.len());
 
     info!("running heater...");
-    heater::heat(urls.iter().cloned()).await?;
+    let (statuses, histogram) = heater::heat(urls.iter().cloned()).await;
+
+    debug!("statuses: {:?}", statuses);
+
+    info!(
+        "response times: \n\tp50: {}\n\tp90: {}\n\tp99: {}",
+        histogram.percentile(50.0).unwrap(),
+        histogram.percentile(90.0).unwrap(),
+        histogram.percentile(99.0).unwrap(),
+    );
 
     Ok(())
 }
