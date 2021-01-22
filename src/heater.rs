@@ -11,7 +11,7 @@ pub enum HeatingError {
     RequestError(#[from] reqwest::Error),
 }
 
-//https://stackoverflow.com/questions/51044467/how-can-i-perform-parallel-asynchronous-http-get-requests-with-reqwest 
+//https://stackoverflow.com/questions/51044467/how-can-i-perform-parallel-asynchronous-http-get-requests-with-reqwest
 pub async fn heat<T: 'static + IntoUrl + Send>(
     urls: impl Iterator<Item = T>,
 ) -> Result<(), HeatingError> {
@@ -33,12 +33,13 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
         .collect()
         .await;
 
-    for s in stats {
-        if let Ok(result) = s {
-            match result {
+    for stat in stats {
+        match stat {
+            Ok(result) => match result {
                 Ok((status, time)) => debug!("stats: {:?} / {:?}", status, time),
                 Err(err) => debug!("error: {:?}", err),
-            };
+            },
+            Err(err) => panic!("tokio join-error: {:?}", err),
         }
     }
 
