@@ -3,6 +3,7 @@ use clap::{App, Arg};
 use log::{debug, info};
 use url::Url;
 
+mod config;
 mod heater;
 mod sitemaps;
 

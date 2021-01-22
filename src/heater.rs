@@ -1,3 +1,4 @@
+use crate::config;
 use counter::Counter;
 use futures::{stream, StreamExt};
 use histogram::Histogram;
@@ -21,7 +22,7 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
                 }
             })
         })
-        .buffer_unordered(num_cpus::get())
+        .buffer_unordered(*(config::CONCURRENT_REQUESTS))
         .map(|result| {
             result
                 .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
