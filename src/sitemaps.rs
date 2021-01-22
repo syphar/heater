@@ -1,5 +1,5 @@
 use async_recursion::async_recursion;
-use log::{debug, info};
+use log::warn;
 use reqwest::{Client, IntoUrl};
 use sitemap::{
     reader::{SiteMapEntity, SiteMapReader},
@@ -31,7 +31,7 @@ async fn get_inner<T: IntoUrl + Send>(client: Client, url: T) -> Result<Vec<Url>
             SiteMapEntity::Url(url_entry) => match url_entry.loc {
                 Location::None => {}
                 Location::Url(url) => result.push(url),
-                Location::ParseErr(err) => debug!("could not parse entry url: {:?}", err),
+                Location::ParseErr(err) => warn!("could not parse entry url: {:?}", err),
             },
             SiteMapEntity::SiteMap(sitemap_entry) => match sitemap_entry.loc {
                 Location::None => {}
@@ -39,7 +39,7 @@ async fn get_inner<T: IntoUrl + Send>(client: Client, url: T) -> Result<Vec<Url>
                     let mut urls = get_inner(client.clone(), url).await?;
                     result.append(&mut urls);
                 }
-                Location::ParseErr(err) => debug!("could not parse sitemap url: {:?}", err),
+                Location::ParseErr(err) => warn!("could not parse sitemap url: {:?}", err),
             },
             SiteMapEntity::Err(_) => {
                 unimplemented!();
