@@ -1,9 +1,9 @@
 use crate::config::Config;
-use std::collections::HashSet;
 use counter::Counter;
 use futures::{stream, StreamExt};
 use histogram::Histogram;
 use reqwest::{header, Client, IntoUrl, StatusCode};
+use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 pub async fn heat<T: 'static + IntoUrl + Send>(
@@ -19,7 +19,7 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
         })
         .buffer_unordered(config.concurrent_requests)
         .map(|result| {
-            result
+            result // while tokio join error can always panic, request errors shouldn't
                 .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
                 .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
         })
@@ -47,14 +47,28 @@ async fn heat_one<T: 'static + IntoUrl + Send>(
 ) -> Result<(StatusCode, Duration), reqwest::Error> {
     let start = Instant::now();
 
+    let config = Config::get();
+
     match client.get(url).send().await {
         Ok(response) => {
             let duration = start.elapsed();
 
             if let Some(headervalue) = response.headers().get(header::VARY) {
                 if let Ok(value) = headervalue.to_str() {
-                    for name in value.split(',') {
-                        log::warn!("vary: {:?}", name.trim());
+                    // log a warning if the `Vary` header contains of values which
+                    // are not defined in the header variations.
+                    let headers_in_request: HashSet<header::HeaderName> = value
+                        .split(',')
+                        .map(|v| v.trim())
+                        .map(|s| s.parse())
+                        .filter_map(Result::ok)
+                        .collect();
+
+                    let configured_headers: HashSet<header::HeaderName> =
+                        config.header_variations.keys().cloned().collect();
+
+                    for missing in headers_in_request.difference(&configured_headers) {
+                        log::warn!("received Vary header '{}' that is missing in configured header variations", missing);
                     }
                 }
             }

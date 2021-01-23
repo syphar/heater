@@ -1,11 +1,12 @@
 use clap::ArgMatches;
 use once_cell::sync::OnceCell;
+use reqwest::header;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Config {
     pub concurrent_requests: usize,
-    pub header_variations: HashMap<String, Vec<String>>,
+    pub header_variations: HashMap<header::HeaderName, Vec<header::HeaderValue>>,
 }
 
 static CONFIG: OnceCell<Config> = OnceCell::new();
