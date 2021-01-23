@@ -21,6 +21,8 @@ pub async fn main() -> Result<()> {
         )
         .get_matches();
 
+    config::Config::initialize(&matches);
+
     let sitemap_url = matches.value_of("sitemap_url").unwrap();
 
     info!("fetching sitemap from {}", sitemap_url);
