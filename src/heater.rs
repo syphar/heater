@@ -49,7 +49,14 @@ async fn heat_one<T: 'static + IntoUrl + Send>(
 
     let config = Config::get();
 
-    match client.get(url).send().await {
+    let mut request = client.get(url);
+    for (header, values) in config.header_variations.iter() {
+        for value in values.iter() {
+            request = request.header(header, value);
+        }
+    }
+
+    match request.send().await {
         Ok(response) => {
             let duration = start.elapsed();
 
