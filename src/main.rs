@@ -7,6 +7,10 @@ mod config;
 mod heater;
 mod sitemaps;
 
+fn validate_header(input: String) -> Result<(), String> {
+    config::parse_header(&input).and_then(|_| Ok(()))
+}
+
 #[tokio::main]
 pub async fn main() -> Result<()> {
     pretty_env_logger::init();
@@ -18,6 +22,14 @@ pub async fn main() -> Result<()> {
                 .help("sitemap URL")
                 .required(true)
                 .index(1),
+        )
+        .arg(
+            Arg::with_name("header_variation")
+                .long("header")
+                .value_name("HEADER:VALUE")
+                .validator(validate_header)
+                .multiple(true)
+                .help("header variation"),
         )
         .get_matches();
 
