@@ -1,10 +1,15 @@
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use once_cell::sync::OnceCell;
 
 static PROGRESS: OnceCell<ProgressBar> = OnceCell::new();
 
 pub fn initialize_progress(len: u64) {
-    PROGRESS.set(ProgressBar::new(len)).unwrap();
+    let bar = ProgressBar::new(len);
+    bar.set_style(
+        ProgressStyle::default_bar().template("[ETA: {eta_precise}] {wide_bar} {pos}/{len}"),
+    );
+
+    PROGRESS.set(bar).unwrap();
 }
 
 pub fn get_progress() -> Option<&'static ProgressBar> {
