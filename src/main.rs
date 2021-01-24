@@ -48,7 +48,7 @@ pub async fn main() -> Result<()> {
     info!("... found {} URLs", urls.len());
 
     info!("running heater...");
-    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned().take(10)).await;
+    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
 
     if let Some(status) = status::get_progress() {
         status.finish_and_clear();
@@ -63,7 +63,6 @@ pub async fn main() -> Result<()> {
 
     println!("");
     println!("\t{}", style("Response times:").bold());
-
     for p in vec![50.0, 90.0, 99.0] {
         println!(
             "\tp{:.0}: {:>5}ms",
@@ -72,7 +71,20 @@ pub async fn main() -> Result<()> {
         );
     }
 
-    // info!("cache-hits: {:?}", cache_hits);
+    if cache_hits.keys().any(|h| h.is_some()) {
+        println!("");
+        println!("\t{}", style("CDN caching:").bold());
+
+        if let Some(h) = cache_hits.get(&Some(true)) {
+            println!("\t{}: {:>7}", style("HIT").bold(), h);
+        }
+        if let Some(h) = cache_hits.get(&Some(false)) {
+            println!("\t{}: {:>7}", style("MISS").bold(), h);
+        }
+        if let Some(h) = cache_hits.get(&None) {
+            println!("\t{}: {:>7}", style("no header").italic(), h);
+        }
+    }
 
     Ok(())
 }
