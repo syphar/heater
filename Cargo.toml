@@ -1,8 +1,14 @@
 [package]
 name = "heater"
+description = "simple sitemap-based cache-warming with header variations."
 version = "0.1.0"
 authors = ["Denis Cornehl <denis.cornehl@gmail.com>"]
 edition = "2018"
+license = "MIT"
+keywords = ["cache", "cdn", "warming", "warm", "sitemap"]
+categories = ["command-line-utilities", "web-programming", "development-tools"]
+repository = "https://github.com/syphar/heater/"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.38"
