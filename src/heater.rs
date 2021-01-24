@@ -10,9 +10,9 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
+    config: &Config,
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
-    let config = Config::get();
     let header_variations = config.header_variations();
 
     let client = Client::new();
@@ -126,14 +126,14 @@ async fn heat_one<T: IntoUrl>(
 mod tests {
     use super::*;
     use mockito::{self, mock};
-    use reqwest::{self, header::HeaderValue, Url};
+    use reqwest::{self, Url};
     use test_case::test_case;
 
     #[tokio::test]
     async fn empty_list() {
-        Config::initialize_with_headers(&HeaderMap::new());
+        let config = Config::new();
         let urls: Vec<Url> = Vec::new();
-        heat(urls.iter().cloned()).await;
+        heat(&config, urls.iter().cloned()).await;
     }
 
     #[tokio::test]
@@ -143,7 +143,8 @@ mod tests {
         let urls: Vec<Url> =
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
 
-        let (statuses, cdn, stats) = heat(urls.iter().cloned()).await;
+        let config = Config::new();
+        let (statuses, cdn, stats) = heat(&config, urls.iter().cloned()).await;
 
         m.assert();
 
@@ -166,7 +167,8 @@ mod tests {
         let urls: Vec<Url> =
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
 
-        let (statuses, cdn, stats) = heat(urls.iter().cloned()).await;
+        let config = Config::new();
+        let (statuses, cdn, stats) = heat(&config, urls.iter().cloned()).await;
 
         m.assert();
 
@@ -185,14 +187,13 @@ mod tests {
             .with_body("test")
             .create();
 
-        let mut headers = HeaderMap::new();
-        headers.insert("dummyheader", HeaderValue::from_static("dummyvalue"));
-        Config::initialize_with_headers(&headers);
+        let mut config = Config::new();
+        config.add_header_variation("dummyheader", "dummyvalue");
 
         let urls: Vec<Url> =
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
 
-        let (statuses, cdn, stats) = heat(urls.iter().cloned()).await;
+        let (statuses, cdn, stats) = heat(&config, urls.iter().cloned()).await;
 
         m.assert();
 

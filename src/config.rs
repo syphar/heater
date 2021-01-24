@@ -1,6 +1,5 @@
 use clap::ArgMatches;
 use itertools::Itertools;
-use once_cell::sync::OnceCell;
 use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
 use std::convert::TryInto;
 
@@ -10,10 +9,8 @@ pub struct Config {
     header_variations: header::HeaderMap,
 }
 
-static CONFIG: OnceCell<Config> = OnceCell::new();
-
 impl Config {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Config {
             concurrent_requests: num_cpus::get(),
             header_variations: HeaderMap::new(),
@@ -47,7 +44,7 @@ impl Config {
         self.header_variations.append(header, value);
     }
 
-    pub fn initialize(arguments: &ArgMatches) {
+    pub fn new_from_arguments(arguments: &ArgMatches) -> Self {
         let mut config = Self::new();
 
         if let Some(values) = arguments.values_of("header_variation") {
@@ -56,17 +53,7 @@ impl Config {
             }
         }
 
-        let _ = CONFIG.set(config);
-    }
-
-    pub fn initialize_with_headers(headers: &HeaderMap) {
-        let mut config = Self::new();
-        config.header_variations = headers.clone();
-        let _ = CONFIG.set(config);
-    }
-
-    pub fn get() -> &'static Config {
-        CONFIG.get().expect("config is not initialized")
+        config
     }
 
     pub fn possible_variations(&self) -> u64 {

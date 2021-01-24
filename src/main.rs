@@ -35,8 +35,7 @@ pub async fn main() -> Result<()> {
         )
         .get_matches();
 
-    config::Config::initialize(&matches);
-    let config = config::Config::get();
+    let config = config::Config::new_from_arguments(&matches);
 
     let sitemap_url = matches.value_of("sitemap_url").unwrap();
 
@@ -48,7 +47,7 @@ pub async fn main() -> Result<()> {
     status::initialize_progress(urls.len() as u64 * config.possible_variations());
 
     info!("running heater...");
-    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
+    let (statuses, cache_hits, histogram) = heater::heat(&config, urls.iter().cloned()).await;
 
     if let Some(status) = status::get_progress() {
         status.finish_and_clear();
