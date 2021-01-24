@@ -10,7 +10,7 @@ mod sitemaps;
 mod status;
 
 fn validate_header(input: String) -> Result<(), String> {
-    config::parse_header(&input).and_then(|_| Ok(()))
+    config::parse_header(&input).map(|_| ())
 }
 
 #[tokio::main]
@@ -59,18 +59,18 @@ pub async fn main() -> Result<()> {
         println!("\t{:>10} => {:>5}", style(status).bold(), count);
     }
 
-    println!("");
+    println!();
     println!("\t{}", style("Response times:").bold());
-    for p in vec![50.0, 90.0, 99.0] {
+    for p in &[50.0, 90.0, 99.0] {
         println!(
             "\tp{:.0}: {:>5}ms",
             style(p).bold(),
-            histogram.percentile(p).unwrap()
+            histogram.percentile(*p).unwrap()
         );
     }
 
     if cache_hits.keys().any(|h| h.is_some()) {
-        println!("");
+        println!();
         println!("\t{}", style("CDN caching:").bold());
 
         if let Some(h) = cache_hits.get(&Some(true)) {

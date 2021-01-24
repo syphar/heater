@@ -36,7 +36,6 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
         .map(|(url, hm)| {
             let client = client.clone();
             let hm = hm.clone();
-            let url = url.clone();
             tokio::spawn(async move { heat_one(&client, url, hm).await })
         })
         .buffer_unordered(config.concurrent_requests)
@@ -81,6 +80,7 @@ async fn heat_one<T: IntoUrl>(
         request = request.header(h, v);
     }
 
+    #[allow(clippy::mutable_key_type)]
     let configured_headers: HashSet<HeaderName> = headers.keys().cloned().collect();
 
     let result = match request.send().await {
@@ -89,6 +89,7 @@ async fn heat_one<T: IntoUrl>(
 
             // log a warning if the `Vary` header contains of values which
             // are not defined in the header variations.
+            #[allow(clippy::mutable_key_type)]
             for headervalue in response.headers().get_all(header::VARY) {
                 if let Ok(value) = headervalue.to_str() {
                     let headers_in_request: HashSet<HeaderName> = value

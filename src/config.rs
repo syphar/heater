@@ -104,17 +104,15 @@ impl Config {
 }
 
 pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderValue), String> {
-    let mut s = input.splitn(2, ":");
+    let mut s = input.splitn(2, ':');
 
     let header = if let Some(hn) = s.next() {
         if hn.is_empty() {
             return Err("Empty header".to_string());
+        } else if let Ok(header) = hn.parse::<header::HeaderName>() {
+            header
         } else {
-            if let Ok(header) = hn.parse::<header::HeaderName>() {
-                header
-            } else {
-                return Err(format!("could not parse header: {}", hn));
-            }
+            return Err(format!("could not parse header: {}", hn));
         }
     } else {
         return Err("missing separator ':' in header definition".to_string());
@@ -137,7 +135,6 @@ pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderVa
 mod tests {
     use super::*;
     use reqwest::header::{HeaderName, HeaderValue};
-    use std::iter::FromIterator;
     use test_case::test_case;
 
     #[test_case(""; "empty")]
