@@ -3,6 +3,8 @@ use clap::{App, Arg};
 use log::{debug, info};
 use url::Url;
 
+use reqwest::header;
+
 mod config;
 mod heater;
 mod sitemaps;
@@ -44,17 +46,26 @@ pub async fn main() -> Result<()> {
 
     info!("... found {} URLs", urls.len());
 
-    info!("running heater...");
-    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
+    for (url, header, value) in urls.iter().map(|url| {
+        let header: Option<header::HeaderName> = None;
+        let value: Option<header::HeaderValue> = None;
 
-    info!("statuses: {:?}", statuses);
-    info!("cache-hits: {:?}", cache_hits);
-    info!(
-        "response times: \n\tp50: {}\n\tp90: {}\n\tp99: {}",
-        histogram.percentile(50.0).unwrap(),
-        histogram.percentile(90.0).unwrap(),
-        histogram.percentile(99.0).unwrap(),
-    );
+        (url, header, value)
+    }) {
+        debug!("try: {} -> {:?} = {:?}", url, header, value);
+    }
+
+    // info!("running heater...");
+    // let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
+
+    // info!("statuses: {:?}", statuses);
+    // info!("cache-hits: {:?}", cache_hits);
+    // info!(
+    //     "response times: \n\tp50: {}\n\tp90: {}\n\tp99: {}",
+    //     histogram.percentile(50.0).unwrap(),
+    //     histogram.percentile(90.0).unwrap(),
+    //     histogram.percentile(99.0).unwrap(),
+    // );
 
     Ok(())
 }
