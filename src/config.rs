@@ -74,10 +74,6 @@ impl Config {
         }
     }
 
-    pub fn configured_headers(&self) -> Vec<HeaderName> {
-        self.header_variations.keys().cloned().collect()
-    }
-
     pub fn header_variations(&self) -> Vec<HeaderMap> {
         if self.header_variations.is_empty() {
             [HeaderMap::new()].to_vec()
@@ -199,7 +195,6 @@ mod tests {
 
         let var = cfg.header_variations();
         assert_eq!(var.len() as u64, cfg.possible_variations());
-        assert_eq!(cfg.configured_headers(), vec!["testheader", "testheader2"]);
 
         assert_eq!(
             var[..],
@@ -220,7 +215,6 @@ mod tests {
 
         let var = cfg.header_variations();
         assert_eq!(var.len() as u64, cfg.possible_variations());
-        assert_eq!(cfg.configured_headers(), vec!["testheader1", "testheader2"]);
 
         let expected = [
             hm(&[

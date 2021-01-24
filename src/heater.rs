@@ -3,13 +3,13 @@ use counter::Counter;
 use futures::{stream, StreamExt};
 use histogram::Histogram;
 use reqwest::{
-    header::{self, HeaderName},
+    header::{self, HeaderMap, HeaderName},
     Client, IntoUrl, StatusCode,
 };
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-pub async fn heat<T: 'static + IntoUrl + Send>(
+pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
     let config = Config::get();
@@ -19,12 +19,25 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
         status::initialize_progress(size as u64 * config.possible_variations())
     }
 
+    let header_variations = config.header_variations();
+
     let client = Client::new();
 
-    let stats: Vec<_> = stream::iter(urls)
+    let todo = urls
         .map(|url| {
+            header_variations
+                .iter()
+                .map(|hm| (url.clone(), hm))
+                .collect::<Vec<_>>()
+        })
+        .flatten();
+
+    let stats: Vec<_> = stream::iter(todo)
+        .map(|(url, hm)| {
             let client = client.clone();
-            tokio::spawn(async move { heat_one(&client, url).await })
+            let hm = hm.clone();
+            let url = url.clone();
+            tokio::spawn(async move { heat_one(&client, url, hm).await })
         })
         .buffer_unordered(config.concurrent_requests)
         .map(|result| {
@@ -59,12 +72,18 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
 async fn heat_one<T: IntoUrl>(
     client: &Client,
     url: T,
+    headers: HeaderMap,
 ) -> Result<(StatusCode, Option<bool>, Duration), reqwest::Error> {
     let start = Instant::now();
 
     let config = Config::get();
 
     let mut request = client.get(url);
+    for (h, v) in headers.iter() {
+        request = request.header(h, v);
+    }
+
+    let configured_headers: HashSet<HeaderName> = headers.keys().cloned().collect();
 
     let result = match request.send().await {
         Ok(response) => {
@@ -80,9 +99,6 @@ async fn heat_one<T: IntoUrl>(
                         .map(|s| s.parse())
                         .filter_map(Result::ok)
                         .collect();
-
-                    let configured_headers: HashSet<HeaderName> =
-                        config.configured_headers().iter().cloned().collect();
 
                     for missing in headers_in_request.difference(&configured_headers) {
                         log::warn!("received Vary header '{}' that is missing in configured header variations", missing);
