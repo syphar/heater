@@ -56,11 +56,13 @@ impl Config {
             }
         }
 
-        CONFIG.set(config).unwrap();
+        let _ = CONFIG.set(config);
     }
 
-    pub fn initialize_empty() {
-        let _ = CONFIG.set(Config::new());
+    pub fn initialize_with_headers(headers: &HeaderMap) {
+        let mut config = Self::new();
+        config.header_variations = headers.clone();
+        let _ = CONFIG.set(config);
     }
 
     pub fn get() -> &'static Config {

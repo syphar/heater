@@ -126,12 +126,12 @@ async fn heat_one<T: IntoUrl>(
 mod tests {
     use super::*;
     use mockito::{self, mock};
-    use reqwest::{self, Url};
+    use reqwest::{self, header::HeaderValue, Url};
     use test_case::test_case;
 
     #[tokio::test]
     async fn empty_list() {
-        Config::initialize_empty();
+        Config::initialize_with_headers(&HeaderMap::new());
         let urls: Vec<Url> = Vec::new();
         heat(urls.iter().cloned()).await;
     }
@@ -180,13 +180,14 @@ mod tests {
     #[tokio::test]
     async fn heat_single_page_with_headers() {
         let m = mock("GET", "/dummy.xml")
-            .with_status(200)
             .match_header("dummyheader", "dummyvalue")
+            .with_status(200)
+            .with_body("test")
             .create();
 
-        // Config::initialize_empty();
-        // let mut config = Config::get();
-        // config.add_header_variation("dummyheader", "dummyvalue");
+        let mut headers = HeaderMap::new();
+        headers.insert("dummyheader", HeaderValue::from_static("dummyvalue"));
+        Config::initialize_with_headers(&headers);
 
         let urls: Vec<Url> =
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
