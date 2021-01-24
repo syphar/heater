@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{App, Arg};
+use console::{style, Term};
 use log::{debug, info};
 use url::Url;
 
@@ -47,16 +48,31 @@ pub async fn main() -> Result<()> {
     info!("... found {} URLs", urls.len());
 
     info!("running heater...");
-    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
+    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned().take(10)).await;
 
-    info!("statuses: {:?}", statuses);
-    info!("cache-hits: {:?}", cache_hits);
-    info!(
-        "response times: \n\tp50: {}\n\tp90: {}\n\tp99: {}",
-        histogram.percentile(50.0).unwrap(),
-        histogram.percentile(90.0).unwrap(),
-        histogram.percentile(99.0).unwrap(),
-    );
+    if let Some(status) = status::get_progress() {
+        status.finish_and_clear();
+    }
+
+    println!("{}", style("Summary").bold());
+
+    println!("\t{}", style("Statuscodes:").bold());
+    for (status, count) in statuses.iter() {
+        println!("\t{:>10} => {:>5}", style(status).bold(), count);
+    }
+
+    println!("");
+    println!("\t{}", style("Response times:").bold());
+
+    for p in vec![50.0, 90.0, 99.0] {
+        println!(
+            "\tp{:.0}: {:>5}ms",
+            style(p).bold(),
+            histogram.percentile(p).unwrap()
+        );
+    }
+
+    // info!("cache-hits: {:?}", cache_hits);
 
     Ok(())
 }
