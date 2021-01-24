@@ -74,13 +74,13 @@ pub async fn main() -> Result<()> {
         println!("\t{}", style("CDN caching:").bold());
 
         if let Some(h) = cache_hits.get(&Some(true)) {
-            println!("\t{}: {:>7}", style("HIT").bold(), h);
+            println!("\t{:>4}: {:>7}", style("HIT").bold(), h);
         }
         if let Some(h) = cache_hits.get(&Some(false)) {
-            println!("\t{}: {:>7}", style("MISS").bold(), h);
+            println!("\t{:>4}: {:>7}", style("MISS").bold(), h);
         }
         if let Some(h) = cache_hits.get(&None) {
-            println!("\t{}: {:>7}", style("no header").italic(), h);
+            println!("\t{}: {:>7}", style("UNKNOWN").italic(), h);
         }
     }
 
