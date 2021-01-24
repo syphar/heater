@@ -107,9 +107,7 @@ pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderVa
     let mut s = input.splitn(2, ':');
 
     let header = if let Some(hn) = s.next() {
-        if hn.is_empty() {
-            return Err("Empty header".to_string());
-        } else if let Ok(header) = hn.parse::<header::HeaderName>() {
+        if let Ok(header) = hn.parse::<header::HeaderName>() {
             header
         } else {
             return Err(format!("could not parse header: {}", hn));
@@ -164,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn header_variations_empty() {
+    fn variations_empty() {
         let cfg = Config::new();
         assert_eq!(cfg.possible_variations(), 1);
         let v = cfg.header_variations();
@@ -185,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn two_headers_one_value() {
+    fn variations_two_headers_one_value() {
         let mut cfg = Config::new();
         cfg.add_header_variation("testheader", "testvalue");
         cfg.add_header_variation("testheader2", "testvalue2");
@@ -203,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    fn two_headers_two_values() {
+    fn variations_two_headers_two_values() {
         let mut cfg = Config::new();
         cfg.add_header_variation("testheader1", "testvalue1_1");
         cfg.add_header_variation("testheader1", "testvalue1_2");
