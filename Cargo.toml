@@ -23,6 +23,8 @@ sitemap = "0.4.1"
 thiserror = "1.0.23"
 tokio = {version="1.0.2", features = ["macros", "rt-multi-thread"] }
 url = "2.2.0"
+xml-rs = "0.8.3"
 
 [dev-dependencies]
+mockito = "0.29.0"
 test-case = "1.1.0"
