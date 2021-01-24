@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::{config::Config, status};
 use counter::Counter;
 use futures::{stream, StreamExt};
 use histogram::Histogram;
@@ -12,8 +12,14 @@ use std::time::{Duration, Instant};
 pub async fn heat<T: 'static + IntoUrl + Send>(
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
-    let client = Client::new();
     let config = Config::get();
+
+    let (_, size_hint) = urls.size_hint();
+    if let Some(size) = size_hint {
+        status::initialize_progress(size as u64 * config.possible_variations())
+    }
+
+    let client = Client::new();
 
     let stats: Vec<_> = stream::iter(urls)
         .map(|url| {
@@ -59,11 +65,11 @@ async fn heat_one<T: IntoUrl>(
     let config = Config::get();
 
     let mut request = client.get(url);
-    for (header, value) in config.header_variations.iter() {
-        request = request.header(header, value);
-    }
+    // for (header, value) in config.header_variations.iter() {
+    //     request = request.header(header, value);
+    // }
 
-    match request.send().await {
+    let result = match request.send().await {
         Ok(response) => {
             let duration = start.elapsed();
 
@@ -103,5 +109,11 @@ async fn heat_one<T: IntoUrl>(
             Ok((response.status(), cache_hit, duration))
         }
         Err(err) => Err(err),
+    };
+
+    if let Some(st) = status::get_progress() {
+        st.inc(1);
     }
+
+    result
 }

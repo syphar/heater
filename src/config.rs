@@ -33,6 +33,10 @@ impl Config {
     pub fn get() -> &'static Config {
         CONFIG.get().expect("config is not initialized")
     }
+
+    pub fn possible_variations(&self) -> u64 {
+        1
+    }
 }
 
 pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderValue), String> {
