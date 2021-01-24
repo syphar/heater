@@ -1,10 +1,8 @@
 use anyhow::Result;
 use clap::{App, Arg};
-use console::{style, Term};
-use log::{debug, info};
+use console::style;
+use log::info;
 use url::Url;
-
-use reqwest::header;
 
 mod config;
 mod heater;

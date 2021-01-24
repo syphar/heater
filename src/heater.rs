@@ -76,8 +76,6 @@ async fn heat_one<T: IntoUrl>(
 ) -> Result<(StatusCode, Option<bool>, Duration), reqwest::Error> {
     let start = Instant::now();
 
-    let config = Config::get();
-
     let mut request = client.get(url);
     for (h, v) in headers.iter() {
         request = request.header(h, v);
