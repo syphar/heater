@@ -44,9 +44,10 @@ pub async fn main() -> Result<()> {
     info!("... found {} URLs", urls.len());
 
     info!("running heater...");
-    let (statuses, histogram) = heater::heat(urls.iter().cloned()).await;
+    let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
 
     info!("statuses: {:?}", statuses);
+    info!("cache-hits: {:?}", cache_hits);
     info!(
         "response times: \n\tp50: {}\n\tp90: {}\n\tp99: {}",
         histogram.percentile(50.0).unwrap(),
