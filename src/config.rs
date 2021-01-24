@@ -38,7 +38,7 @@ impl Config {
         )
     }
 
-    fn add_header_variation<TH: TryInto<HeaderName>, TV: TryInto<HeaderValue>>(
+    pub fn add_header_variation<TH: TryInto<HeaderName>, TV: TryInto<HeaderValue>>(
         &mut self,
         header: TH,
         value: TV,
@@ -57,6 +57,10 @@ impl Config {
         }
 
         CONFIG.set(config).unwrap();
+    }
+
+    pub fn initialize_empty() {
+        let _ = CONFIG.set(Config::new());
     }
 
     pub fn get() -> &'static Config {

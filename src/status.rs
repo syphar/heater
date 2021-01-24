@@ -9,7 +9,7 @@ pub fn initialize_progress(len: u64) {
         ProgressStyle::default_bar().template("[ETA: {eta_precise}] {wide_bar} {pos}/{len}"),
     );
 
-    PROGRESS.set(bar).unwrap();
+    let _ = PROGRESS.set(bar);
 }
 
 pub fn get_progress() -> Option<&'static ProgressBar> {

@@ -13,12 +13,6 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
     let config = Config::get();
-
-    let (_, size_hint) = urls.size_hint();
-    if let Some(size) = size_hint {
-        status::initialize_progress(size as u64 * config.possible_variations())
-    }
-
     let header_variations = config.header_variations();
 
     let client = Client::new();
@@ -116,8 +110,6 @@ async fn heat_one<T: IntoUrl>(
             } else {
                 None
             };
-            // if let Some(value) = response.headers().get(
-
             Ok((response.status(), cache_hit, duration))
         }
         Err(err) => Err(err),
@@ -128,4 +120,85 @@ async fn heat_one<T: IntoUrl>(
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mockito::{self, mock};
+    use reqwest::{self, Url};
+    use test_case::test_case;
+
+    #[tokio::test]
+    async fn empty_list() {
+        Config::initialize_empty();
+        let urls: Vec<Url> = Vec::new();
+        heat(urls.iter().cloned()).await;
+    }
+
+    #[tokio::test]
+    async fn heat_single_page_simple() {
+        let m = mock("GET", "/dummy.xml").with_status(200).create();
+
+        let urls: Vec<Url> =
+            vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
+
+        let (statuses, cdn, stats) = heat(urls.iter().cloned()).await;
+
+        m.assert();
+
+        assert_eq!(statuses.len(), 1);
+        assert_eq!(statuses.get(&StatusCode::OK), Some(&1));
+        assert_eq!(stats.entries(), 1);
+        assert_eq!(cdn.len(), 1);
+        assert_eq!(cdn.get(&None), Some(&1));
+    }
+
+    #[test_case("HIT", true)]
+    #[test_case("MISS", false)]
+    #[tokio::test]
+    async fn heat_single_page_cdn(header_value: &str, expected: bool) {
+        let m = mock("GET", "/dummy.xml")
+            .with_status(200)
+            .with_header("x-cache", header_value)
+            .create();
+
+        let urls: Vec<Url> =
+            vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
+
+        let (statuses, cdn, stats) = heat(urls.iter().cloned()).await;
+
+        m.assert();
+
+        assert_eq!(statuses.len(), 1);
+        assert_eq!(statuses.get(&StatusCode::OK), Some(&1));
+        assert_eq!(stats.entries(), 1);
+        assert_eq!(cdn.len(), 1);
+        assert_eq!(cdn.get(&Some(expected)), Some(&1));
+    }
+
+    #[tokio::test]
+    async fn heat_single_page_with_headers() {
+        let m = mock("GET", "/dummy.xml")
+            .with_status(200)
+            .match_header("dummyheader", "dummyvalue")
+            .create();
+
+        // Config::initialize_empty();
+        // let mut config = Config::get();
+        // config.add_header_variation("dummyheader", "dummyvalue");
+
+        let urls: Vec<Url> =
+            vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
+
+        let (statuses, cdn, stats) = heat(urls.iter().cloned()).await;
+
+        m.assert();
+
+        assert_eq!(statuses.len(), 1);
+        assert_eq!(statuses.get(&StatusCode::OK), Some(&1));
+        assert_eq!(stats.entries(), 1);
+        assert_eq!(cdn.len(), 1);
+        assert_eq!(cdn.get(&None), Some(&1));
+    }
 }

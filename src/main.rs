@@ -36,6 +36,7 @@ pub async fn main() -> Result<()> {
         .get_matches();
 
     config::Config::initialize(&matches);
+    let config = config::Config::get();
 
     let sitemap_url = matches.value_of("sitemap_url").unwrap();
 
@@ -44,6 +45,7 @@ pub async fn main() -> Result<()> {
     let urls: Vec<Url> = sitemaps::get(sitemap_url).await?;
 
     info!("... found {} URLs", urls.len());
+    status::initialize_progress(urls.len() as u64 * config.possible_variations());
 
     info!("running heater...");
     let (statuses, cache_hits, histogram) = heater::heat(urls.iter().cloned()).await;
