@@ -1,4 +1,5 @@
 use clap::ArgMatches;
+use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
 use std::convert::TryInto;
@@ -71,6 +72,10 @@ impl Config {
                 .map(|k| self.header_variations.get_all(k).iter().count())
                 .product::<usize>() as u64
         }
+    }
+
+    pub fn configured_headers(&self) -> Vec<HeaderName> {
+        self.header_variations.keys().cloned().collect()
     }
 
     pub fn header_variations(&self) -> Vec<HeaderMap> {
@@ -194,6 +199,7 @@ mod tests {
 
         let var = cfg.header_variations();
         assert_eq!(var.len() as u64, cfg.possible_variations());
+        assert_eq!(cfg.configured_headers(), vec!["testheader", "testheader2"]);
 
         assert_eq!(
             var[..],
@@ -214,6 +220,7 @@ mod tests {
 
         let var = cfg.header_variations();
         assert_eq!(var.len() as u64, cfg.possible_variations());
+        assert_eq!(cfg.configured_headers(), vec!["testheader1", "testheader2"]);
 
         let expected = [
             hm(&[
