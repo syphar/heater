@@ -1,37 +1,33 @@
 use clap::ArgMatches;
 use once_cell::sync::OnceCell;
-use reqwest::header;
-use std::collections::{HashMap, HashSet};
+use reqwest::header::{self, HeaderMap};
 
 #[derive(Debug)]
 pub struct Config {
     pub concurrent_requests: usize,
-    pub header_variations: HashMap<header::HeaderName, HashSet<header::HeaderValue>>,
+    pub header_variations: header::HeaderMap,
 }
 
 static CONFIG: OnceCell<Config> = OnceCell::new();
 
 impl Config {
+    fn new() -> Self {
+        Config {
+            concurrent_requests: num_cpus::get(),
+            header_variations: HeaderMap::new(),
+        }
+    }
+
     pub fn initialize(arguments: &ArgMatches) {
-        let mut variations: HashMap<header::HeaderName, HashSet<header::HeaderValue>> =
-            HashMap::new();
+        let mut config = Self::new();
+
         if let Some(values) = arguments.values_of("header_variation") {
-            for (header, value) in values.into_iter().filter_map(|v| parse_header(v).ok()) {
-                if !(variations.contains_key(&header)) {
-                    variations.insert(header.clone(), HashSet::new());
-                }
-                variations.get_mut(&header).unwrap().insert(value);
+            for (h, v) in values.into_iter().filter_map(|v| parse_header(v).ok()) {
+                config.header_variations.append(h, v);
             }
         }
 
-        log::debug!("loaded variations: {:?}", variations);
-
-        CONFIG
-            .set(Config {
-                concurrent_requests: num_cpus::get(),
-                header_variations: variations,
-            })
-            .unwrap();
+        CONFIG.set(config).unwrap();
     }
 
     pub fn get() -> &'static Config {

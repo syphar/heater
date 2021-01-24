@@ -41,7 +41,7 @@ pub async fn heat<T: 'static + IntoUrl + Send>(
     (counts, histogram)
 }
 
-async fn heat_one<T: 'static + IntoUrl + Send>(
+async fn heat_one<T: IntoUrl>(
     client: &Client,
     url: T,
 ) -> Result<(StatusCode, Duration), reqwest::Error> {
@@ -50,20 +50,18 @@ async fn heat_one<T: 'static + IntoUrl + Send>(
     let config = Config::get();
 
     let mut request = client.get(url);
-    for (header, values) in config.header_variations.iter() {
-        for value in values.iter() {
-            request = request.header(header, value);
-        }
+    for (header, value) in config.header_variations.iter() {
+        request = request.header(header, value);
     }
 
     match request.send().await {
         Ok(response) => {
             let duration = start.elapsed();
 
-            if let Some(headervalue) = response.headers().get(header::VARY) {
+            // log a warning if the `Vary` header contains of values which
+            // are not defined in the header variations.
+            for headervalue in response.headers().get_all(header::VARY) {
                 if let Ok(value) = headervalue.to_str() {
-                    // log a warning if the `Vary` header contains of values which
-                    // are not defined in the header variations.
                     let headers_in_request: HashSet<header::HeaderName> = value
                         .split(',')
                         .map(|v| v.trim())
