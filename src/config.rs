@@ -3,6 +3,8 @@ use itertools::Itertools;
 use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
 use std::convert::TryInto;
 
+pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"),);
+
 #[derive(Debug)]
 pub struct Config {
     pub concurrent_requests: usize,
@@ -127,6 +129,12 @@ mod tests {
     use super::*;
     use reqwest::header::{HeaderName, HeaderValue};
     use test_case::test_case;
+
+    #[test]
+    fn user_agent() {
+        assert!(APP_USER_AGENT.contains("heater"));
+        assert_eq!(APP_USER_AGENT.chars().filter(|&c| c == '.').count(), 2);
+    }
 
     #[test_case(""; "empty")]
     #[test_case(":"; "only colon")]

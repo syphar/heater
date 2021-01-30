@@ -1,4 +1,7 @@
-use crate::{config::Config, status};
+use crate::{
+    config::{self, Config},
+    status,
+};
 use counter::Counter;
 use futures::{stream, StreamExt};
 use histogram::Histogram;
@@ -69,7 +72,9 @@ async fn heat_one<T: IntoUrl>(
 ) -> Result<(StatusCode, Option<bool>, Duration), reqwest::Error> {
     let start = Instant::now();
 
-    let mut request = client.get(url);
+    let mut request = client
+        .get(url)
+        .header(header::USER_AGENT, config::APP_USER_AGENT);
     for (h, v) in headers.iter() {
         request = request.header(h, v);
     }
@@ -181,8 +186,10 @@ mod tests {
 
     #[tokio::test]
     async fn heat_single_page_with_headers() {
+        #[allow(clippy::borrow_interior_mutable_const)]
         let m = mock("GET", "/dummy.xml")
             .match_header("dummyheader", "dummyvalue")
+            .match_header(header::USER_AGENT.as_ref(), config::APP_USER_AGENT)
             .with_status(200)
             .with_body("test")
             .create();
