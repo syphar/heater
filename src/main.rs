@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{App, Arg};
+use clap::{crate_authors, crate_name, crate_version, App, Arg};
 use console::style;
 use log::info;
 use url::Url;
@@ -17,9 +17,10 @@ fn validate_header(input: String) -> Result<(), String> {
 pub async fn main() -> Result<()> {
     pretty_env_logger::init();
 
-    let matches = App::new("heater")
+    let matches = App::new(crate_name!())
         .about("heats up website caches")
-        .version(env!("CARGO_PKG_VERSION"))
+        .version(crate_version!())
+        .author(crate_authors!())
         .arg(
             Arg::with_name("sitemap_url")
                 .help("sitemap URL")
