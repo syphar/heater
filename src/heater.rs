@@ -18,7 +18,11 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
     let header_variations = config.header_variations();
 
-    let client = Client::new();
+    let client = Client::builder()
+        .user_agent(config::APP_USER_AGENT)
+        .gzip(true)
+        .build()
+        .unwrap();
 
     let todo = urls
         .map(|url| {
@@ -72,9 +76,7 @@ async fn heat_one<T: IntoUrl>(
 ) -> Result<(StatusCode, Option<bool>, Duration), reqwest::Error> {
     let start = Instant::now();
 
-    let mut request = client
-        .get(url)
-        .header(header::USER_AGENT, config::APP_USER_AGENT);
+    let mut request = client.get(url);
     for (h, v) in headers.iter() {
         request = request.header(h, v);
     }
@@ -189,6 +191,7 @@ mod tests {
         #[allow(clippy::borrow_interior_mutable_const)]
         let m = mock("GET", "/dummy.xml")
             .match_header("dummyheader", "dummyvalue")
+            .match_header(header::ACCEPT_ENCODING.as_ref(), "gzip, br")
             .match_header(header::USER_AGENT.as_ref(), config::APP_USER_AGENT)
             .with_status(200)
             .with_body("test")
