@@ -24,29 +24,28 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
         .build()
         .unwrap();
 
-    let todo = urls
-        .map(|url| {
+    let stats: Vec<_> = stream::iter(
+        urls.map(|url| {
             header_variations
                 .iter()
                 .map(|hm| (url.clone(), hm))
                 .collect::<Vec<_>>()
         })
-        .flatten();
-
-    let stats: Vec<_> = stream::iter(todo)
-        .map(|(url, hm)| {
-            let client = client.clone();
-            let hm = hm.clone();
-            tokio::spawn(async move { heat_one(&client, url, hm).await })
-        })
-        .buffer_unordered(config.concurrent_requests)
-        .map(|result| {
-            result // while tokio join error can always panic, request errors shouldn't
-                .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
-                .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
-        })
-        .collect()
-        .await;
+        .flatten(),
+    )
+    .map(|(url, hm)| {
+        let client = client.clone();
+        let hm = hm.clone();
+        tokio::spawn(async move { heat_one(&client, url, hm).await })
+    })
+    .buffer_unordered(config.concurrent_requests)
+    .map(|result| {
+        result // while tokio join error can always panic, request errors shouldn't
+            .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
+            .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
+    })
+    .collect()
+    .await;
 
     let counts = stats
         .iter()
