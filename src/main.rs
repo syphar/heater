@@ -35,6 +35,17 @@ pub async fn main() -> Result<()> {
                 .multiple(true)
                 .help("header variation"),
         )
+        .arg(
+            Arg::with_name("language")
+                .long("language")
+                .value_name("IEFT language tag")
+                .multiple(true)
+                .help(
+                    "language tags will be used to generate all \
+                    possible permutations of these languages, \
+                    including their order",
+                ),
+        )
         .get_matches();
 
     let config = config::Config::new_from_arguments(&matches);

@@ -11,7 +11,9 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-        --header <HEADER:VALUE>...    header variation
+        --header <HEADER:VALUE>...           header variation
+        --language <IEFT language tag>...    language tags will be used to generate all possible permutations of these
+                                             languages, including their order
 
 ARGS:
     <sitemap_url>    sitemap URL
@@ -33,6 +35,5 @@ For now, it can be simply installed globally via `cargo install heater`.
 * `heater http://site/sitemap.xml --header accept-language:en --header accept-language:de`
   will request all the pages with **both** possible `accept-language` headers.
 
-
-## debugging
-setting `RUST_LOG=debug` enables some debugging output.
+* `heater http://site/sitemap.xml --language de --language en`
+  will request accept-language with permutations for these languages: `de`, `en`, `en, de`, `en,de`. 

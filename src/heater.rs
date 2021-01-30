@@ -16,7 +16,9 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
     config: &Config,
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
-    let header_variations = config.header_variations();
+    let header_variations = config.generate_header_variations();
+
+    log::debug!("header variations: {:?}", header_variations);
 
     let client = Client::builder()
         .user_agent(config::APP_USER_AGENT)

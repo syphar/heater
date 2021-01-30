@@ -1,14 +1,17 @@
 use clap::ArgMatches;
 use itertools::Itertools;
 use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
+use std::collections::HashSet;
 use std::convert::TryInto;
+use std::iter;
 
 pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"),);
 
 #[derive(Debug)]
 pub struct Config {
     pub concurrent_requests: usize,
-    header_variations: header::HeaderMap,
+    header_variations: HeaderMap,
+    languages: HashSet<HeaderValue>,
 }
 
 impl Config {
@@ -16,6 +19,7 @@ impl Config {
         Config {
             concurrent_requests: num_cpus::get(),
             header_variations: HeaderMap::new(),
+            languages: HashSet::new(),
         }
     }
 
@@ -46,6 +50,14 @@ impl Config {
         self.header_variations.append(header, value);
     }
 
+    pub fn add_language_variation<T: TryInto<HeaderValue>>(&mut self, language: T) {
+        if let Ok(value) = language.try_into() {
+            self.languages.insert(value);
+        } else {
+            panic!("could not parse language value");
+        }
+    }
+
     pub fn new_from_arguments(arguments: &ArgMatches) -> Self {
         let mut config = Self::new();
 
@@ -55,31 +67,87 @@ impl Config {
             }
         }
 
+        if let Some(values) = arguments.values_of("language") {
+            for value in values {
+                config.add_language_variation(value);
+            }
+        }
+
         config
     }
 
     pub fn possible_variations(&self) -> u64 {
-        if self.header_variations.is_empty() {
-            1
-        } else {
-            self.header_variations
-                .keys()
-                .map(|k| self.header_variations.get_all(k).iter().count())
-                .product::<usize>() as u64
-        }
+        // TODO find shortcuts
+        self.generate_header_variations().len() as u64
     }
 
-    pub fn header_variations(&self) -> Vec<HeaderMap> {
-        if self.header_variations.is_empty() {
+    fn generate_language_variations(&self) -> Vec<HeaderValue> {
+        let (empty, languages): (Vec<&HeaderValue>, Vec<&HeaderValue>) = self
+            .languages
+            .iter()
+            .partition(|&v| v.to_str().unwrap().trim().is_empty());
+
+        let mut response: Vec<HeaderValue> = Vec::new();
+        if !(empty.is_empty()) {
+            response.push(HeaderValue::from_static(""));
+        }
+
+        // create list of all languages
+        #[allow(clippy::map_clone)]
+        let languages: Vec<HeaderValue> = languages
+            .iter()
+            .sorted()
+            .dedup()
+            .map(|v| *v)
+            .cloned()
+            .collect();
+
+        response.extend(
+            // duplicate the language list x times, where x is the amount of languages
+            iter::repeat(languages.clone())
+                .take(languages.len())
+                // create a cartesian product of these combinations
+                .multi_cartesian_product()
+                .map(|language_list| {
+                    // create a joined header-value for the list of combinations
+                    // language-list is made unique
+                    HeaderValue::from_str(
+                        &(language_list
+                            .iter()
+                            .sorted()
+                            .dedup()
+                            .cloned()
+                            .map(|v| v.to_str().unwrap().to_owned())
+                            .collect::<Vec<String>>()
+                            .join(", ")),
+                    )
+                    .unwrap()
+                })
+                .collect::<Vec<HeaderValue>>(),
+        );
+
+        response
+    }
+
+    pub fn generate_header_variations(&self) -> Vec<HeaderMap> {
+        if self.header_variations.is_empty() && self.languages.is_empty() {
             [HeaderMap::new()].to_vec()
         } else {
+            let mut header_variations = self.header_variations.clone();
+
+            header_variations.extend(
+                self.generate_language_variations()
+                    .into_iter()
+                    .map(|v| (header::ACCEPT_LANGUAGE, v)),
+            );
+
             // for every header-name, create a list of pairs (headername, value)
-            let v: Vec<Vec<(HeaderName, HeaderValue)>> = self
-                .header_variations
+            // with all possible values for that header
+            let v: Vec<Vec<(HeaderName, HeaderValue)>> = header_variations
                 .keys()
                 .cloned()
                 .map(|k| {
-                    self.header_variations
+                    header_variations
                         .get_all(&k)
                         .iter()
                         .cloned()
@@ -88,7 +156,8 @@ impl Config {
                 })
                 .collect();
 
-            // use a cartesian product to return the values
+            // use a cartesian product to generate all possible variations
+            // of these headers
             v.iter()
                 .cloned()
                 .multi_cartesian_product()
@@ -166,7 +235,7 @@ mod tests {
     fn variations_empty() {
         let cfg = Config::new();
         assert_eq!(cfg.possible_variations(), 1);
-        let v = cfg.header_variations();
+        let v = cfg.generate_header_variations();
         assert_eq!(v.len(), 1);
 
         let headermap = &v[0];
@@ -183,13 +252,21 @@ mod tests {
             .collect()
     }
 
+    fn hv<T: TryInto<HeaderValue>>(input: T) -> HeaderValue {
+        if let Ok(v) = input.try_into() {
+            v
+        } else {
+            panic!("could not convert");
+        }
+    }
+
     #[test]
     fn variations_two_headers_one_value() {
         let mut cfg = Config::new();
         cfg.add_header_variation("testheader", "testvalue");
         cfg.add_header_variation("testheader2", "testvalue2");
 
-        let var = cfg.header_variations();
+        let var = cfg.generate_header_variations();
         assert_eq!(var.len() as u64, cfg.possible_variations());
 
         assert_eq!(
@@ -201,6 +278,40 @@ mod tests {
         );
     }
 
+    #[test_case(&[""], &[""]; "empty")]
+    #[test_case(&["de"], &["de"]; "de")]
+    #[test_case(&["", "de"], &["", "de"]; "de + empty")]
+    #[test_case(&["de", "en"], &["en", "de, en", "de, en", "de"]; "de,en")]
+    #[test_case(&["", "de", "en"], &["", "en", "de, en", "de, en", "de"]; "de,en,empty")]
+    fn language_variations(input: &[&str], expected: &[&str]) {
+        let mut cfg = Config::new();
+        for l in input {
+            cfg.add_language_variation(hv(*l));
+        }
+
+        assert_eq!(cfg.generate_language_variations().len(), expected.len());
+
+        #[allow(clippy::mutable_key_type)]
+        let v: HashSet<HeaderValue> = cfg.generate_language_variations().iter().cloned().collect();
+        #[allow(clippy::mutable_key_type)]
+        let expected: HashSet<HeaderValue> = expected.iter().map(|v| hv(*v)).collect();
+        assert_eq!(v, expected);
+
+        assert_eq!(
+            cfg.generate_header_variations().len() as u64,
+            cfg.possible_variations()
+        );
+
+        #[allow(clippy::mutable_key_type)]
+        let header_values: HashSet<HeaderValue> = cfg
+            .generate_header_variations()
+            .iter()
+            .map(|hm| hm.get(header::ACCEPT_LANGUAGE).unwrap().clone())
+            .collect();
+
+        assert_eq!(header_values, expected);
+    }
+
     #[test]
     fn variations_two_headers_two_values() {
         let mut cfg = Config::new();
@@ -209,7 +320,7 @@ mod tests {
         cfg.add_header_variation("testheader2", "testvalue2_1");
         cfg.add_header_variation("testheader2", "testvalue2_2");
 
-        let var = cfg.header_variations();
+        let var = cfg.generate_header_variations();
         assert_eq!(var.len() as u64, cfg.possible_variations());
 
         let expected = [
