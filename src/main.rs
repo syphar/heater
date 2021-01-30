@@ -19,6 +19,7 @@ pub async fn main() -> Result<()> {
 
     let matches = App::new("heater")
         .about("heats up website caches")
+        .version(env!("CARGO_PKG_VERSION"))
         .arg(
             Arg::with_name("sitemap_url")
                 .help("sitemap URL")
