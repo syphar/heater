@@ -9,7 +9,6 @@ use reqwest::{
     header::{self, HeaderMap, HeaderName},
     Client, IntoUrl, StatusCode,
 };
-use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
@@ -82,42 +81,37 @@ async fn heat_one<T: IntoUrl>(
         request = request.header(h, v);
     }
 
-    #[allow(clippy::mutable_key_type)]
-    let configured_headers: HashSet<HeaderName> = headers.keys().cloned().collect();
-
     let result = match request.send().await {
         Ok(response) => {
             let duration = start.elapsed();
 
             // log a warning if the `Vary` header contains of values which
             // are not defined in the header variations.
-            #[allow(clippy::mutable_key_type)]
-            for headervalue in response.headers().get_all(header::VARY) {
-                if let Ok(value) = headervalue.to_str() {
-                    let headers_in_request: HashSet<HeaderName> = value
+
+            if log::max_level() >= log::LevelFilter::Warn {
+                for value in response
+                    .headers()
+                    .get_all(header::VARY)
+                    .iter()
+                    .filter_map(|v| v.to_str().ok())
+                {
+                    for header_name in value
                         .split(',')
                         .map(|v| v.trim())
-                        .map(|s| s.parse())
-                        .filter_map(Result::ok)
-                        .collect();
-
-                    for missing in headers_in_request.difference(&configured_headers) {
-                        log::warn!("received Vary header '{}' that is missing in configured header variations", missing);
+                        .filter_map(|s| s.parse::<HeaderName>().ok())
+                    {
+                        if !(headers.contains_key(&header_name)) {
+                            log::warn!("received Vary header '{}' that is missing in configured header variations", header_name);
+                        }
                     }
                 }
             }
 
-            let cache_hit = if let Some(headervalue) =
-                response.headers().get(HeaderName::from_static("x-cache"))
-            {
-                if let Ok(value) = headervalue.to_str() {
-                    Some(value[0..3].to_lowercase() == "hit")
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
+            let cache_hit = response
+                .headers()
+                .get(HeaderName::from_static("x-cache"))
+                .map(|value| value.to_str().unwrap_or("")[0..3].to_lowercase() == "hit");
+
             Ok((response.status(), cache_hit, duration))
         }
         Err(err) => Err(err),
