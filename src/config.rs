@@ -82,30 +82,25 @@ impl Config {
     }
 
     fn generate_language_variations(&self) -> Vec<HeaderValue> {
-        let (empty, languages): (Vec<&HeaderValue>, Vec<&HeaderValue>) = self
+        let (empty, languages): (Vec<String>, Vec<String>) = self
             .languages
             .iter()
-            .partition(|&v| v.to_str().unwrap().trim().is_empty());
+            .sorted()
+            .dedup()
+            .map(|l| l.to_str().unwrap().to_owned())
+            .partition(|v| v.trim().is_empty());
 
         let mut response: Vec<HeaderValue> = Vec::new();
         if !(empty.is_empty()) {
             response.push(HeaderValue::from_static(""));
         }
 
-        // create list of all languages
-        #[allow(clippy::map_clone)]
-        let languages: Vec<HeaderValue> = languages
-            .iter()
-            .sorted()
-            .dedup()
-            .map(|v| *v)
-            .cloned()
-            .collect();
+        let len = languages.len();
 
         response.extend(
             // duplicate the language list x times, where x is the amount of languages
-            iter::repeat(languages.clone())
-                .take(languages.len())
+            iter::repeat(languages)
+                .take(len)
                 // create a cartesian product of these combinations
                 .multi_cartesian_product()
                 .map(|language_list| {
@@ -114,10 +109,8 @@ impl Config {
                     HeaderValue::from_str(
                         &(language_list
                             .iter()
-                            .sorted()
-                            .dedup()
+                            .unique()
                             .cloned()
-                            .map(|v| v.to_str().unwrap().to_owned())
                             .collect::<Vec<String>>()
                             .join(", ")),
                     )
@@ -281,8 +274,8 @@ mod tests {
     #[test_case(&[""], &[""]; "empty")]
     #[test_case(&["de"], &["de"]; "de")]
     #[test_case(&["", "de"], &["", "de"]; "de + empty")]
-    #[test_case(&["de", "en"], &["en", "de, en", "de, en", "de"]; "de,en")]
-    #[test_case(&["", "de", "en"], &["", "en", "de, en", "de, en", "de"]; "de,en,empty")]
+    #[test_case(&["de", "en"], &["en", "de, en", "en, de", "de"]; "de,en")]
+    #[test_case(&["", "de", "en"], &["", "en", "de, en", "en, de", "de"]; "de,en,empty")]
     fn language_variations(input: &[&str], expected: &[&str]) {
         let mut cfg = Config::new();
         for l in input {
