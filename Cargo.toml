@@ -12,7 +12,7 @@ readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.38"
-async-recursion = "0.3.1"
+async-recursion = "0.3.2"
 clap = "2.33.3"
 console = { version="0.14.0", default-features = false }
 counter = "0.5.2"
