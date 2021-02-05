@@ -245,14 +245,6 @@ mod tests {
             .collect()
     }
 
-    fn hv<T: TryInto<HeaderValue>>(input: T) -> HeaderValue {
-        if let Ok(v) = input.try_into() {
-            v
-        } else {
-            panic!("could not convert");
-        }
-    }
-
     #[test]
     fn variations_two_headers_one_value() {
         let mut cfg = Config::new();
@@ -277,9 +269,15 @@ mod tests {
     #[test_case(&["de", "en"], &["en", "de, en", "en, de", "de"]; "de,en")]
     #[test_case(&["", "de", "en"], &["", "en", "de, en", "en, de", "de"]; "de,en,empty")]
     fn language_variations(input: &[&str], expected: &[&str]) {
+        macro_rules! hv {
+            ($a:expr) => {
+                HeaderValue::from_str($a).unwrap()
+            };
+        }
+
         let mut cfg = Config::new();
         for l in input {
-            cfg.add_language_variation(hv(*l));
+            cfg.add_language_variation(hv!(*l));
         }
 
         assert_eq!(cfg.generate_language_variations().len(), expected.len());
@@ -287,7 +285,7 @@ mod tests {
         #[allow(clippy::mutable_key_type)]
         let v: HashSet<HeaderValue> = cfg.generate_language_variations().iter().cloned().collect();
         #[allow(clippy::mutable_key_type)]
-        let expected: HashSet<HeaderValue> = expected.iter().map(|v| hv(*v)).collect();
+        let expected: HashSet<HeaderValue> = expected.iter().map(|v| hv!(*v)).collect();
         assert_eq!(v, expected);
 
         assert_eq!(
