@@ -4,6 +4,7 @@ use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
 use std::collections::HashSet;
 use std::convert::TryInto;
 use std::iter;
+use thiserror::Error;
 
 pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"),);
 
@@ -14,6 +15,21 @@ macro_rules! parse_header_tuple {
             $value.try_into().expect("unparseable header value"),
         )
     };
+}
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("missing header name")]
+    MissingHeaderName,
+
+    #[error("invalid header name")]
+    InvalidHeaderName(#[from] header::InvalidHeaderName),
+
+    #[error("missing header value")]
+    MissingHeaderValue,
+
+    #[error("invalid header value")]
+    InvalidHeaderValue(#[from] header::InvalidHeaderValue),
 }
 
 #[derive(Debug)]
@@ -43,12 +59,13 @@ impl Config {
         self.header_variations.append(header, value);
     }
 
-    pub fn add_language_variation<T: TryInto<HeaderValue>>(&mut self, language: T) {
-        if let Ok(value) = language.try_into() {
-            self.languages.insert(value);
-        } else {
-            panic!("could not parse language value");
-        }
+    pub fn add_language_variation<T>(&mut self, language: T)
+    where
+        T: TryInto<HeaderValue>,
+        T::Error: std::fmt::Debug,
+    {
+        self.languages
+            .insert(language.try_into().expect("could not parse language value"));
     }
 
     pub fn new_from_arguments(arguments: &ArgMatches) -> Self {
@@ -153,28 +170,18 @@ impl Config {
     }
 }
 
-pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderValue), String> {
+pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderValue), Error> {
     let mut s = input.splitn(2, ':');
 
-    let header = if let Some(hn) = s.next() {
-        if let Ok(header) = hn.parse::<header::HeaderName>() {
-            header
-        } else {
-            return Err(format!("could not parse header: {}", hn));
-        }
-    } else {
-        return Err("missing separator ':' in header definition".to_string());
-    };
+    let header = s
+        .next()
+        .ok_or(Error::MissingHeaderName)?
+        .parse::<header::HeaderName>()?;
 
-    let value = if let Some(val) = s.next() {
-        if let Ok(value) = val.parse::<header::HeaderValue>() {
-            value
-        } else {
-            return Err(format!("invalid header value: {}", val));
-        }
-    } else {
-        return Err("could not find value".to_string());
-    };
+    let value = s
+        .next()
+        .ok_or(Error::MissingHeaderValue)?
+        .parse::<header::HeaderValue>()?;
 
     Ok((header, value))
 }
@@ -214,7 +221,7 @@ mod tests {
         HeaderValue::from_static("")
     )]
     fn header_validation_ok(text: &str, header: HeaderName, value: HeaderValue) {
-        assert_eq!(parse_header(text), Ok((header, value)));
+        assert_eq!(parse_header(text).unwrap(), (header, value));
     }
 
     #[test]
