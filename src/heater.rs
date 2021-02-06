@@ -26,7 +26,7 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
         .build()
         .unwrap();
 
-    let stats: Vec<_> = stream::iter(iproduct!(urls, header_variations.iter()))
+    stream::iter(iproduct!(urls, header_variations.iter()))
         .map(|(url, hm)| {
             let client = client.clone();
             let hm = hm.clone();
@@ -38,28 +38,17 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
                 .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
                 .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
         })
-        .collect()
-        .await;
+        .fold(
+            (Counter::new(), Counter::new(), Histogram::new()),
+            |(mut acc_status, mut acc_cache, mut histogram), (status, cache_hit, elapsed)| async move {
+                acc_status[&status] += 1;
+                acc_cache[&cache_hit] += 1;
+                histogram.increment(elapsed.as_millis() as u64).unwrap();
 
-    let counts = stats
-        .iter()
-        .map(|(status, _, _)| status)
-        .cloned()
-        .collect::<Counter<_>>();
-
-    let cache_hits = stats
-        .iter()
-        .map(|(_, cache_hit, _)| cache_hit)
-        .cloned()
-        .collect::<Counter<_>>();
-
-    let mut histogram = Histogram::new();
-
-    for (_, _, elapsed) in stats {
-        histogram.increment(elapsed.as_millis() as u64).unwrap();
-    }
-
-    (counts, cache_hits, histogram)
+                (acc_status, acc_cache, histogram)
+            },
+        )
+        .await
 }
 
 async fn heat_one<T: IntoUrl>(
