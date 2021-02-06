@@ -7,6 +7,15 @@ use std::iter;
 
 pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"),);
 
+macro_rules! parse_header_tuple {
+    ($header:expr,$value:expr) => {
+        (
+            $header.try_into().expect("unparseable header name"),
+            $value.try_into().expect("unparseable header value"),
+        )
+    };
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub concurrent_requests: usize,
@@ -23,30 +32,14 @@ impl Config {
         }
     }
 
-    fn header_tuple<TH: TryInto<HeaderName>, TV: TryInto<HeaderValue>>(
-        header: TH,
-        value: TV,
-    ) -> (HeaderName, HeaderValue) {
-        (
-            if let Ok(header) = header.try_into() {
-                header
-            } else {
-                panic!("could not parse header");
-            },
-            if let Ok(value) = value.try_into() {
-                value
-            } else {
-                panic!("could not parse header value");
-            },
-        )
-    }
-
-    pub fn add_header_variation<TH: TryInto<HeaderName>, TV: TryInto<HeaderValue>>(
-        &mut self,
-        header: TH,
-        value: TV,
-    ) {
-        let (header, value) = Self::header_tuple(header, value);
+    pub fn add_header_variation<TH, TV>(&mut self, header: TH, value: TV)
+    where
+        TH: TryInto<HeaderName>,
+        TH::Error: std::fmt::Debug,
+        TV: TryInto<HeaderValue>,
+        TV::Error: std::fmt::Debug,
+    {
+        let (header, value) = parse_header_tuple!(header, value);
         self.header_variations.append(header, value);
     }
 
@@ -240,7 +233,7 @@ mod tests {
             .to_vec()
             .iter()
             .cloned()
-            .map(|(h, v)| Config::header_tuple(h, v))
+            .map(|(h, v)| parse_header_tuple!(h, v))
             .into_iter()
             .collect()
     }
