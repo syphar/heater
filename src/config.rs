@@ -88,7 +88,7 @@ impl Config {
 
     pub fn possible_variations(&self) -> u64 {
         // TODO find shortcuts
-        self.generate_header_variations().len() as u64
+        self.generate_header_variations().count() as u64
     }
 
     fn generate_language_variations(&self) -> Vec<HeaderValue> {
@@ -132,41 +132,37 @@ impl Config {
         response
     }
 
-    pub fn generate_header_variations(&self) -> Vec<HeaderMap> {
-        if self.header_variations.is_empty() && self.languages.is_empty() {
-            [HeaderMap::new()].to_vec()
-        } else {
-            let mut header_variations = self.header_variations.clone();
+    pub fn generate_header_variations(&self) -> impl Iterator<Item = HeaderMap> + Clone {
+        let mut header_variations = self.header_variations.clone();
 
-            header_variations.extend(
-                self.generate_language_variations()
-                    .into_iter()
-                    .map(|v| (header::ACCEPT_LANGUAGE, v)),
-            );
+        header_variations.insert(header::USER_AGENT, HeaderValue::from_static(APP_USER_AGENT));
+        header_variations.extend(
+            self.generate_language_variations()
+                .into_iter()
+                .map(|v| (header::ACCEPT_LANGUAGE, v)),
+        );
 
-            // for every header-name, create a list of pairs (headername, value)
-            // with all possible values for that header
-            let v: Vec<Vec<(HeaderName, HeaderValue)>> = header_variations
-                .keys()
-                .cloned()
-                .map(|k| {
-                    header_variations
-                        .get_all(&k)
-                        .iter()
-                        .cloned()
-                        .map(|v| (k.clone(), v))
-                        .collect::<Vec<(HeaderName, HeaderValue)>>()
-                })
-                .collect();
+        // for every header-name, create a list of pairs (headername, value)
+        // with all possible values for that header
+        let v: Vec<Vec<(HeaderName, HeaderValue)>> = header_variations
+            .keys()
+            .cloned()
+            .map(|k| {
+                header_variations
+                    .get_all(&k)
+                    .iter()
+                    .cloned()
+                    .map(|v| (k.clone(), v))
+                    .collect::<Vec<(HeaderName, HeaderValue)>>()
+            })
+            .collect();
 
-            // use a cartesian product to generate all possible variations
-            // of these headers
-            v.iter()
-                .cloned()
-                .multi_cartesian_product()
-                .map(|o| o.iter().cloned().collect::<HeaderMap>())
-                .collect()
-        }
+        // use a cartesian product to generate all possible variations
+        // of these headers
+        v.iter()
+            .cloned()
+            .multi_cartesian_product()
+            .map(|o| o.iter().cloned().collect::<HeaderMap>())
     }
 }
 
@@ -228,11 +224,12 @@ mod tests {
     fn variations_empty() {
         let cfg = Config::new();
         assert_eq!(cfg.possible_variations(), 1);
-        let v = cfg.generate_header_variations();
-        assert_eq!(v.len(), 1);
 
-        let headermap = &v[0];
-        assert_eq!(headermap.len(), 0);
+        let var: Vec<_> = cfg.generate_header_variations().collect();
+        assert_eq!(var.len() as u64, cfg.possible_variations());
+        assert_eq!(var.len(), 1);
+
+        assert_eq!(var[..], [hm(&[("user-agent", APP_USER_AGENT),])]);
     }
 
     fn hm(tuples: &[(&str, &str)]) -> HeaderMap {
@@ -251,7 +248,7 @@ mod tests {
         cfg.add_header_variation("testheader", "testvalue");
         cfg.add_header_variation("testheader2", "testvalue2");
 
-        let var = cfg.generate_header_variations();
+        let var: Vec<_> = cfg.generate_header_variations().collect();
         assert_eq!(var.len() as u64, cfg.possible_variations());
 
         assert_eq!(
@@ -259,6 +256,7 @@ mod tests {
             [hm(&[
                 ("testheader", "testvalue"),
                 ("testheader2", "testvalue2"),
+                ("user-agent", APP_USER_AGENT),
             ])]
         );
     }
@@ -289,14 +287,13 @@ mod tests {
         assert_eq!(v, expected);
 
         assert_eq!(
-            cfg.generate_header_variations().len() as u64,
+            cfg.generate_header_variations().count() as u64,
             cfg.possible_variations()
         );
 
         #[allow(clippy::mutable_key_type)]
         let header_values: HashSet<HeaderValue> = cfg
             .generate_header_variations()
-            .iter()
             .map(|hm| hm.get(header::ACCEPT_LANGUAGE).unwrap().clone())
             .collect();
 
@@ -311,25 +308,29 @@ mod tests {
         cfg.add_header_variation("testheader2", "testvalue2_1");
         cfg.add_header_variation("testheader2", "testvalue2_2");
 
-        let var = cfg.generate_header_variations();
+        let var: Vec<_> = cfg.generate_header_variations().collect();
         assert_eq!(var.len() as u64, cfg.possible_variations());
 
         let expected = [
             hm(&[
                 ("testheader1", "testvalue1_1"),
                 ("testheader2", "testvalue2_1"),
+                ("user-agent", APP_USER_AGENT),
             ]),
             hm(&[
                 ("testheader1", "testvalue1_1"),
                 ("testheader2", "testvalue2_2"),
+                ("user-agent", APP_USER_AGENT),
             ]),
             hm(&[
                 ("testheader1", "testvalue1_2"),
                 ("testheader2", "testvalue2_1"),
+                ("user-agent", APP_USER_AGENT),
             ]),
             hm(&[
                 ("testheader1", "testvalue1_2"),
                 ("testheader2", "testvalue2_2"),
+                ("user-agent", APP_USER_AGENT),
             ]),
         ];
 

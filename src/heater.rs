@@ -1,7 +1,4 @@
-use crate::{
-    config::{self, Config},
-    status,
-};
+use crate::{config::Config, status};
 use counter::Counter;
 use futures::{stream, StreamExt};
 use histogram::Histogram;
@@ -16,39 +13,35 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
     config: &Config,
     urls: impl Iterator<Item = T>,
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
-    let header_variations = config.generate_header_variations();
+    let client = Client::builder().gzip(true).build().unwrap();
 
-    log::debug!("header variations: {:?}", header_variations);
+    stream::iter(iproduct!(
+        urls,
+        config.generate_header_variations()
+    ))
+    .map(|(url, hm)| {
+        let client = client.clone();
+        let hm = hm.clone();
+        tokio::spawn(async move { heat_one(&client, url, hm).await })
+    })
+    .buffer_unordered(config.concurrent_requests)
+    .map(|result| {
+        result // while tokio join errors should always panic,
+            .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
+            // TODO: reqwest errors should be handled differently
+            .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
+    })
+    .fold(
+        (Counter::new(), Counter::new(), Histogram::new()),
+        |(mut acc_status, mut acc_cache, mut histogram), (status, cache_hit, elapsed)| async move {
+            acc_status[&status] += 1;
+            acc_cache[&cache_hit] += 1;
+            histogram.increment(elapsed.as_millis() as u64).unwrap();
 
-    let client = Client::builder()
-        .user_agent(config::APP_USER_AGENT)
-        .gzip(true)
-        .build()
-        .unwrap();
-
-    stream::iter(iproduct!(urls, header_variations.iter()))
-        .map(|(url, hm)| {
-            let client = client.clone();
-            let hm = hm.clone();
-            tokio::spawn(async move { heat_one(&client, url, hm).await })
-        })
-        .buffer_unordered(config.concurrent_requests)
-        .map(|result| {
-            result // while tokio join error can always panic, request errors shouldn't
-                .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
-                .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
-        })
-        .fold(
-            (Counter::new(), Counter::new(), Histogram::new()),
-            |(mut acc_status, mut acc_cache, mut histogram), (status, cache_hit, elapsed)| async move {
-                acc_status[&status] += 1;
-                acc_cache[&cache_hit] += 1;
-                histogram.increment(elapsed.as_millis() as u64).unwrap();
-
-                (acc_status, acc_cache, histogram)
-            },
-        )
-        .await
+            (acc_status, acc_cache, histogram)
+        },
+    )
+    .await
 }
 
 async fn heat_one<T: IntoUrl>(
@@ -109,6 +102,7 @@ async fn heat_one<T: IntoUrl>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config;
     use mockito::{self, mock};
     use reqwest::{self, Url};
     use test_case::test_case;
