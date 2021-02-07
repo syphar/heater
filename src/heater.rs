@@ -21,7 +21,6 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
     ))
     .map(|(url, hm)| {
         let client = client.clone();
-        let hm = hm.clone();
         tokio::spawn(async move { heat_one(&client, url, hm).await })
     })
     .buffer_unordered(config.concurrent_requests)
