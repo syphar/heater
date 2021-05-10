@@ -28,7 +28,7 @@ reqwest = { version="0.11.3", default-features = false, features = ["gzip", "nat
 sitemap = "0.4.1"
 thiserror = "1.0.24"
 tokio = {version="1.5.0", features = ["macros", "rt-multi-thread"] }
-url = "2.2.1"
+url = "2.2.2"
 xml-rs = "0.8.3"
 
 [dev-dependencies]
