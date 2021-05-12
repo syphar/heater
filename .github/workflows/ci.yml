@@ -37,7 +37,7 @@ jobs:
           toolchain: stable
           components: rustfmt
 
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         with:
           command: fmt
           args: -- --check
@@ -56,7 +56,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
 
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         with:
           command: clippy
           args: --all-targets --workspace --locked -- -D warnings
