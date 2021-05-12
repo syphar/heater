@@ -16,7 +16,7 @@ async-recursion = "0.3.2"
 clap = "2.33.3"
 console = { version="0.14.1", default-features = false }
 counter = "0.5.2"
-futures = { version="0.3.14", default-features = false, features = ["alloc"] }
+futures = { version="0.3.15", default-features = false, features = ["alloc"] }
 histogram = "0.6.9"
 indicatif = "0.16.0"
 itertools = "0.10.0"
