@@ -18,7 +18,7 @@ console = { version="0.14.1", default-features = false }
 counter = "0.5.2"
 futures = { version="0.3.15", default-features = false, features = ["alloc"] }
 histogram = "0.6.9"
-indicatif = "0.16.1"
+indicatif = "0.16.2"
 itertools = "0.10.0"
 log = { version = "0.4.14", features = ["max_level_debug", "release_max_level_warn"] }
 num_cpus = "1.13.0"
