@@ -27,7 +27,7 @@ pretty_env_logger = "0.4.0"
 reqwest = { version="0.11.4", default-features = false, features = ["gzip", "native-tls"] }
 sitemap = "0.4.1"
 thiserror = "1.0.26"
-tokio = {version="1.8.0", features = ["macros", "rt-multi-thread"] }
+tokio = {version="1.8.1", features = ["macros", "rt-multi-thread"] }
 url = "2.2.2"
 xml-rs = "0.8.3"
 
