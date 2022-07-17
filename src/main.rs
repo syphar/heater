@@ -9,8 +9,8 @@ mod heater;
 mod sitemaps;
 mod status;
 
-fn validate_header(input: String) -> Result<(), String> {
-    config::parse_header(&input)
+fn validate_header(input: &str) -> Result<(), String> {
+    config::parse_header(input)
         .map(|_| ())
         .map_err(|e| format!("{}", e))
 }
