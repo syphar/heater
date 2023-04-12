@@ -238,7 +238,6 @@ mod tests {
             .iter()
             .cloned()
             .map(|(h, v)| parse_header_tuple!(h, v))
-            .into_iter()
             .collect()
     }
 
