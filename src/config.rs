@@ -71,13 +71,13 @@ impl Config {
     pub fn new_from_arguments(arguments: &ArgMatches) -> Self {
         let mut config = Self::new();
 
-        if let Some(values) = arguments.values_of("header_variation") {
-            for (h, v) in values.into_iter().filter_map(|v| parse_header(v).ok()) {
-                config.add_header_variation(h, v);
+        if let Some(values) = arguments.get_many::<HeaderVariation>("header_variation") {
+            for hv in values {
+                config.add_header_variation(&hv.header, &hv.value);
             }
         }
 
-        if let Some(values) = arguments.values_of("language") {
+        if let Some(values) = arguments.get_many::<String>("language") {
             for value in values {
                 config.add_language_variation(value);
             }
@@ -166,7 +166,13 @@ impl Config {
     }
 }
 
-pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderValue), Error> {
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct HeaderVariation {
+    header: header::HeaderName,
+    value: header::HeaderValue,
+}
+
+pub(crate) fn parse_header(input: &str) -> Result<HeaderVariation, Error> {
     let mut s = input.splitn(2, ':');
 
     let header = s
@@ -179,7 +185,7 @@ pub fn parse_header(input: &str) -> Result<(header::HeaderName, header::HeaderVa
         .ok_or(Error::MissingHeaderValue)?
         .parse::<header::HeaderValue>()?;
 
-    Ok((header, value))
+    Ok(HeaderVariation { header, value })
 }
 
 #[cfg(test)]
@@ -217,7 +223,10 @@ mod tests {
         HeaderValue::from_static("")
     )]
     fn header_validation_ok(text: &str, header: HeaderName, value: HeaderValue) {
-        assert_eq!(parse_header(text).unwrap(), (header, value));
+        assert_eq!(
+            parse_header(text).unwrap(),
+            HeaderVariation { header, value }
+        );
     }
 
     #[test]

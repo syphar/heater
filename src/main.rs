@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{crate_authors, crate_name, crate_version, App, Arg};
+use clap::{command, crate_authors, crate_name, crate_version, Arg, ArgAction};
 use console::style;
 use log::info;
 use url::Url;
@@ -9,39 +9,33 @@ mod heater;
 mod sitemaps;
 mod status;
 
-fn validate_header(input: &str) -> Result<(), String> {
-    config::parse_header(input)
-        .map(|_| ())
-        .map_err(|e| format!("{}", e))
-}
-
 #[tokio::main]
 pub async fn main() -> Result<()> {
     pretty_env_logger::init();
 
-    let matches = App::new(crate_name!())
+    let matches = command!(crate_name!())
         .about("heats up website caches")
         .version(crate_version!())
         .author(crate_authors!())
         .arg(
-            Arg::with_name("sitemap_url")
+            Arg::new("sitemap_url")
                 .help("sitemap URL")
                 .required(true)
                 .index(1),
         )
         .arg(
-            Arg::with_name("header_variation")
+            Arg::new("header_variation")
                 .long("header")
                 .value_name("HEADER:VALUE")
-                .validator(validate_header)
-                .multiple(true)
+                .value_parser(config::parse_header)
+                .action(ArgAction::Append)
                 .help("header variation"),
         )
         .arg(
-            Arg::with_name("language")
+            Arg::new("language")
                 .long("language")
                 .value_name("IEFT language tag")
-                .multiple(true)
+                .action(ArgAction::Append)
                 .help(
                     "language tags will be used to generate all \
                     possible permutations of these languages, \
@@ -52,7 +46,7 @@ pub async fn main() -> Result<()> {
 
     let config = config::Config::new_from_arguments(&matches);
 
-    let sitemap_url = matches.value_of("sitemap_url").unwrap();
+    let sitemap_url = matches.get_one::<String>("sitemap_url").unwrap();
 
     info!("fetching sitemap from {}", sitemap_url);
 
