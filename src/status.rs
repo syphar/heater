@@ -6,7 +6,9 @@ static PROGRESS: OnceCell<ProgressBar> = OnceCell::new();
 pub fn initialize_progress(len: u64) {
     let bar = ProgressBar::new(len);
     bar.set_style(
-        ProgressStyle::default_bar().template("[ETA: {eta_precise}] {wide_bar} {pos}/{len}"),
+        ProgressStyle::default_bar()
+            .template("[ETA: {eta_precise}] {wide_bar} {pos}/{len}")
+            .expect("could not initialize progress"),
     );
 
     let _ = PROGRESS.set(bar);
