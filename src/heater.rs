@@ -105,7 +105,6 @@ async fn heat_one<T: IntoUrl>(
 mod tests {
     use super::*;
     use crate::config;
-    use mockito::{self, mock};
     use reqwest::{self, Url};
     use test_case::test_case;
 
@@ -118,10 +117,10 @@ mod tests {
 
     #[tokio::test]
     async fn heat_single_page_simple() {
-        let m = mock("GET", "/dummy.xml").with_status(200).create();
+        let mut server = mockito::Server::new();
+        let m = server.mock("GET", "/dummy.xml").with_status(200).create();
 
-        let urls: Vec<Url> =
-            vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
+        let urls: Vec<Url> = vec![Url::parse(&format!("{}/dummy.xml", server.url())).unwrap()];
 
         let config = Config::new();
         let (statuses, cdn, _) = heat(&config, urls.iter().cloned()).await;
@@ -138,13 +137,14 @@ mod tests {
     #[test_case("MISS", false)]
     #[tokio::test]
     async fn heat_single_page_cdn(header_value: &str, expected: bool) {
-        let m = mock("GET", "/dummy.xml")
+        let mut server = mockito::Server::new();
+        let m = server
+            .mock("GET", "/dummy.xml")
             .with_status(200)
             .with_header("x-cache", header_value)
             .create();
 
-        let urls: Vec<Url> =
-            vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
+        let urls: Vec<Url> = vec![Url::parse(&format!("{}/dummy.xml", server.url())).unwrap()];
 
         let config = Config::new();
         let (statuses, cdn, _) = heat(&config, urls.iter().cloned()).await;
@@ -160,7 +160,9 @@ mod tests {
     #[tokio::test]
     async fn heat_single_page_with_headers() {
         #[allow(clippy::borrow_interior_mutable_const)]
-        let m = mock("GET", "/dummy.xml")
+        let mut server = mockito::Server::new();
+        let m = server
+            .mock("GET", "/dummy.xml")
             .match_header("dummyheader", "dummyvalue")
             .match_header(header::ACCEPT_ENCODING.as_ref(), "gzip")
             .match_header(header::USER_AGENT.as_ref(), config::APP_USER_AGENT)
@@ -171,8 +173,7 @@ mod tests {
         let mut config = Config::new();
         config.add_header_variation("dummyheader", "dummyvalue");
 
-        let urls: Vec<Url> =
-            vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
+        let urls: Vec<Url> = vec![Url::parse(&format!("{}/dummy.xml", server.url())).unwrap()];
 
         let (statuses, cdn, _) = heat(&config, urls.iter().cloned()).await;
 

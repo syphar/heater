@@ -53,7 +53,6 @@ async fn get_inner<T: IntoUrl + Send>(client: Client, url: T) -> Result<Vec<Url>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockito::{self, mock};
 
     #[tokio::test]
     async fn does_not_exist() {
@@ -62,20 +61,22 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_xml() {
-        let _m = mock("GET", "/sitemap.xml")
+        let mut server = mockito::Server::new();
+        let _m = server
+            .mock("GET", "/sitemap.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
             .with_body("asdf")
             .create();
 
-        assert!(get(&format!("{}/sitemap.xml", mockito::server_url()))
-            .await
-            .is_err());
+        assert!(get(&format!("{}/sitemap.xml", server.url())).await.is_err());
     }
 
     #[tokio::test]
     async fn load_single_sitemap() {
-        let _m = mock("GET", "/sitemap.xml")
+        let mut server = mockito::Server::new();
+        let _m = server
+            .mock("GET", "/sitemap.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
             .with_body(
@@ -89,16 +90,16 @@ mod tests {
             .create();
 
         assert_eq!(
-            get(&format!("{}/sitemap.xml", mockito::server_url()))
-                .await
-                .unwrap()[..],
+            get(&format!("{}/sitemap.xml", server.url())).await.unwrap()[..],
             [Url::parse("http://www.example.com/").unwrap()],
         );
     }
 
     #[tokio::test]
     async fn load_sub_sitemaps() {
-        let _m = mock("GET", "/sitemap.xml")
+        let mut server = mockito::Server::new();
+        let _m = server
+            .mock("GET", "/sitemap.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
             .with_body(format!(
@@ -108,11 +109,12 @@ mod tests {
                         <loc>{}/real_sitemap.xml</loc>
                     </sitemap>
                 </sitemapindex>"#,
-                mockito::server_url()
+                server.url()
             ))
             .create();
 
-        let _i = mock("GET", "/real_sitemap.xml")
+        let _i = server
+            .mock("GET", "/real_sitemap.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
             .with_body(
@@ -126,9 +128,7 @@ mod tests {
             .create();
 
         assert_eq!(
-            get(&format!("{}/sitemap.xml", mockito::server_url()))
-                .await
-                .unwrap()[..],
+            get(&format!("{}/sitemap.xml", server.url())).await.unwrap()[..],
             [Url::parse("http://www.example11.com/").unwrap()],
         );
     }
