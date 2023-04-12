@@ -72,10 +72,12 @@ pub async fn main() -> Result<()> {
     println!();
     println!("\t{}", style("Response times:").bold());
     for p in &[50.0, 90.0, 99.0] {
+        let bucket = histogram.percentile(*p).unwrap();
         println!(
-            "\tp{:.0}: {:>5}ms",
+            "\tp{:.0}: {:>5}ms - {:>5}ms",
             style(p).bold(),
-            histogram.percentile(*p).unwrap()
+            bucket.low(),
+            bucket.high(),
         );
     }
 

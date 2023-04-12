@@ -15,32 +15,35 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
 ) -> (Counter<StatusCode>, Counter<Option<bool>>, Histogram) {
     let client = Client::builder().gzip(true).build().unwrap();
 
-    stream::iter(iproduct!(
-        urls,
-        config.generate_header_variations()
-    ))
-    .map(|(url, hm)| {
-        let client = client.clone();
-        tokio::spawn(async move { heat_one(&client, url, hm).await })
-    })
-    .buffer_unordered(config.concurrent_requests)
-    .map(|result| {
-        result // while tokio join errors should always panic,
-            .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
-            // TODO: reqwest errors should be handled differently
-            .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
-    })
-    .fold(
-        (Counter::new(), Counter::new(), Histogram::new()),
-        |(mut acc_status, mut acc_cache, mut histogram), (status, cache_hit, elapsed)| async move {
-            acc_status[&status] += 1;
-            acc_cache[&cache_hit] += 1;
-            histogram.increment(elapsed.as_millis() as u64).unwrap();
+    stream::iter(iproduct!(urls, config.generate_header_variations()))
+        .map(|(url, hm)| {
+            let client = client.clone();
+            tokio::spawn(async move { heat_one(&client, url, hm).await })
+        })
+        .buffer_unordered(config.concurrent_requests)
+        .map(|result| {
+            result // while tokio join errors should always panic,
+                .unwrap_or_else(|err| panic!("tokio error: {:?}", err))
+                // TODO: reqwest errors should be handled differently
+                .unwrap_or_else(|err| panic!("reqwest error error: {:?}", err))
+        })
+        .fold(
+            (
+                Counter::new(),
+                Counter::new(),
+                Histogram::builder()
+                    .build()
+                    .expect("could not initialize histogram"),
+            ),
+            |(mut acc_status, mut acc_cache, histogram), (status, cache_hit, elapsed)| async move {
+                acc_status[&status] += 1;
+                acc_cache[&cache_hit] += 1;
+                histogram.increment(elapsed.as_millis() as u64, 1).unwrap();
 
-            (acc_status, acc_cache, histogram)
-        },
-    )
-    .await
+                (acc_status, acc_cache, histogram)
+            },
+        )
+        .await
 }
 
 async fn heat_one<T: IntoUrl>(
@@ -121,13 +124,12 @@ mod tests {
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
 
         let config = Config::new();
-        let (statuses, cdn, stats) = heat(&config, urls.iter().cloned()).await;
+        let (statuses, cdn, _) = heat(&config, urls.iter().cloned()).await;
 
         m.assert();
 
         assert_eq!(statuses.len(), 1);
         assert_eq!(statuses.get(&StatusCode::OK), Some(&1));
-        assert_eq!(stats.entries(), 1);
         assert_eq!(cdn.len(), 1);
         assert_eq!(cdn.get(&None), Some(&1));
     }
@@ -145,13 +147,12 @@ mod tests {
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
 
         let config = Config::new();
-        let (statuses, cdn, stats) = heat(&config, urls.iter().cloned()).await;
+        let (statuses, cdn, _) = heat(&config, urls.iter().cloned()).await;
 
         m.assert();
 
         assert_eq!(statuses.len(), 1);
         assert_eq!(statuses.get(&StatusCode::OK), Some(&1));
-        assert_eq!(stats.entries(), 1);
         assert_eq!(cdn.len(), 1);
         assert_eq!(cdn.get(&Some(expected)), Some(&1));
     }
@@ -173,13 +174,12 @@ mod tests {
         let urls: Vec<Url> =
             vec![Url::parse(&format!("{}/dummy.xml", mockito::server_url())).unwrap()];
 
-        let (statuses, cdn, stats) = heat(&config, urls.iter().cloned()).await;
+        let (statuses, cdn, _) = heat(&config, urls.iter().cloned()).await;
 
         m.assert();
 
         assert_eq!(statuses.len(), 1);
         assert_eq!(statuses.get(&StatusCode::OK), Some(&1));
-        assert_eq!(stats.entries(), 1);
         assert_eq!(cdn.len(), 1);
         assert_eq!(cdn.get(&None), Some(&1));
     }
