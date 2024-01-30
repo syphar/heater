@@ -19,7 +19,7 @@ counter = "0.5.2"
 futures = { version = "0.3.17", default-features = false, features = ["alloc"] }
 histogram = "0.7.2"
 indicatif = "0.17.3"
-itertools = "0.10.1"
+itertools = "0.12.1"
 log = { version = "0.4.14", features = [
   "max_level_debug",
   "release_max_level_warn",
