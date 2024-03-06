@@ -61,20 +61,21 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_xml() {
-        let mut server = mockito::Server::new();
+        let mut server = mockito::Server::new_async().await;
         let _m = server
             .mock("GET", "/sitemap.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
             .with_body("asdf")
-            .create();
+            .create_async()
+            .await;
 
         assert!(get(&format!("{}/sitemap.xml", server.url())).await.is_err());
     }
 
     #[tokio::test]
     async fn load_single_sitemap() {
-        let mut server = mockito::Server::new();
+        let mut server = mockito::Server::new_async().await;
         let _m = server
             .mock("GET", "/sitemap.xml")
             .with_status(200)
@@ -87,7 +88,8 @@ mod tests {
                 </url>
             </urlset>"#,
             )
-            .create();
+            .create_async()
+            .await;
 
         assert_eq!(
             get(&format!("{}/sitemap.xml", server.url())).await.unwrap()[..],
@@ -97,7 +99,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_sub_sitemaps() {
-        let mut server = mockito::Server::new();
+        let mut server = mockito::Server::new_async().await;
         let _m = server
             .mock("GET", "/sitemap.xml")
             .with_status(200)
@@ -111,7 +113,8 @@ mod tests {
                 </sitemapindex>"#,
                 server.url()
             ))
-            .create();
+            .create_async()
+            .await;
 
         let _i = server
             .mock("GET", "/real_sitemap.xml")
@@ -125,7 +128,8 @@ mod tests {
                     </url>
                 </urlset>"#,
             )
-            .create();
+            .create_async()
+            .await;
 
         assert_eq!(
             get(&format!("{}/sitemap.xml", server.url())).await.unwrap()[..],

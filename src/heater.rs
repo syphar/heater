@@ -115,8 +115,12 @@ mod tests {
 
     #[tokio::test]
     async fn heat_single_page_simple() {
-        let mut server = mockito::Server::new();
-        let m = server.mock("GET", "/dummy.xml").with_status(200).create();
+        let mut server = mockito::Server::new_async().await;
+        let m = server
+            .mock("GET", "/dummy.xml")
+            .with_status(200)
+            .create_async()
+            .await;
 
         let urls: Vec<Url> = vec![Url::parse(&format!("{}/dummy.xml", server.url())).unwrap()];
 
@@ -135,12 +139,13 @@ mod tests {
     #[test_case("MISS", false)]
     #[tokio::test]
     async fn heat_single_page_cdn(header_value: &str, expected: bool) {
-        let mut server = mockito::Server::new();
+        let mut server = mockito::Server::new_async().await;
         let m = server
             .mock("GET", "/dummy.xml")
             .with_status(200)
             .with_header("x-cache", header_value)
-            .create();
+            .create_async()
+            .await;
 
         let urls: Vec<Url> = vec![Url::parse(&format!("{}/dummy.xml", server.url())).unwrap()];
 
@@ -158,15 +163,16 @@ mod tests {
     #[tokio::test]
     async fn heat_single_page_with_headers() {
         #[allow(clippy::borrow_interior_mutable_const)]
-        let mut server = mockito::Server::new();
+        let mut server = mockito::Server::new_async().await;
         let m = server
             .mock("GET", "/dummy.xml")
             .match_header("dummyheader", "dummyvalue")
-            .match_header(header::ACCEPT_ENCODING.as_ref(), "gzip")
-            .match_header(header::USER_AGENT.as_ref(), config::APP_USER_AGENT)
+            .match_header(header::ACCEPT_ENCODING, "gzip")
+            .match_header(header::USER_AGENT, config::APP_USER_AGENT)
             .with_status(200)
             .with_body("test")
-            .create();
+            .create_async()
+            .await;
 
         let mut config = Config::new();
         config.add_header_variation("dummyheader", "dummyvalue");
