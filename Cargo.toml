@@ -2,7 +2,7 @@
 name = "heater"
 description = "simple sitemap-based cache-warming with header variations."
 version = "0.3.0"
-authors = ["Denis Cornehl <denis.cornehl@gmail.com>"]
+authors = ["Denis Cornehl <denis@cornehl.org>"]
 edition = "2018"
 license = "MIT"
 keywords = ["cache", "cdn", "warming", "warm", "sitemap"]
