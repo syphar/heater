@@ -76,8 +76,8 @@ pub async fn main() -> Result<()> {
         println!(
             "\tp{:.0}: {:>5}ms - {:>5}ms",
             style(p).bold(),
-            bucket.low(),
-            bucket.high(),
+            bucket.start(),
+            bucket.end(),
         );
     }
 

@@ -31,14 +31,12 @@ pub async fn heat<T: 'static + IntoUrl + Send + Clone>(
             (
                 Counter::new(),
                 Counter::new(),
-                Histogram::builder()
-                    .build()
-                    .expect("could not initialize histogram"),
+                Histogram::new(10, 30).expect("could not initialize histogram"),
             ),
-            |(mut acc_status, mut acc_cache, histogram), (status, cache_hit, elapsed)| async move {
+            |(mut acc_status, mut acc_cache, mut histogram), (status, cache_hit, elapsed)| async move {
                 acc_status[&status] += 1;
                 acc_cache[&cache_hit] += 1;
-                histogram.increment(elapsed.as_millis() as u64, 1).unwrap();
+                histogram.increment(elapsed.as_millis() as u64).unwrap();
 
                 (acc_status, acc_cache, histogram)
             },
