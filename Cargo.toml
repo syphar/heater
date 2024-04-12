@@ -17,19 +17,19 @@ clap = { version = "4.1.1", features = ["cargo"] }
 console = { version = "0.15.0", default-features = false }
 counter = "0.5.2"
 futures = { version = "0.3.17", default-features = false, features = ["alloc"] }
-histogram = "0.9.1"
+histogram = "0.10.0"
 indicatif = "0.17.3"
 itertools = "0.12.1"
 log = { version = "0.4.14", features = [
-  "max_level_debug",
-  "release_max_level_warn",
+    "max_level_debug",
+    "release_max_level_warn",
 ] }
 num_cpus = "1.13.0"
 once_cell = "1.8.0"
 pretty_env_logger = "0.5.0"
-reqwest = { version = "0.11.6", default-features = false, features = [
-  "gzip",
-  "native-tls",
+reqwest = { version = "0.12.3", default-features = false, features = [
+    "gzip",
+    "native-tls",
 ] }
 sitemap = "0.4.1"
 thiserror = "1.0.30"
