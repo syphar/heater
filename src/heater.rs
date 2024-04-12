@@ -167,8 +167,8 @@ mod tests {
         let m = server
             .mock("GET", "/dummy.xml")
             .match_header("dummyheader", "dummyvalue")
-            .match_header(header::ACCEPT_ENCODING, "gzip")
-            .match_header(header::USER_AGENT, config::APP_USER_AGENT)
+            .match_header(header::ACCEPT_ENCODING.as_str(), "gzip")
+            .match_header(header::USER_AGENT.as_str(), config::APP_USER_AGENT)
             .with_status(200)
             .with_body("test")
             .create_async()
