@@ -15,7 +15,7 @@ anyhow = "1.0.44"
 async-recursion = "1.0.0"
 clap = { version = "4.1.1", features = ["cargo"] }
 console = { version = "0.15.0", default-features = false }
-counter = "0.5.2"
+counter = "0.6.0"
 futures = { version = "0.3.17", default-features = false, features = ["alloc"] }
 histogram = "0.10.0"
 indicatif = "0.17.3"
