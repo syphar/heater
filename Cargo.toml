@@ -15,9 +15,9 @@ anyhow = "1.0.44"
 async-recursion = "1.0.0"
 clap = { version = "4.1.1", features = ["cargo"] }
 console = { version = "0.15.0", default-features = false }
-counter = "0.5.2"
+counter = "0.6.0"
 futures = { version = "0.3.17", default-features = false, features = ["alloc"] }
-histogram = "0.10.0"
+histogram = "0.11.1"
 indicatif = "0.17.3"
 itertools = "0.12.1"
 log = { version = "0.4.14", features = [
@@ -32,7 +32,7 @@ reqwest = { version = "0.12.3", default-features = false, features = [
     "native-tls",
 ] }
 sitemap = "0.4.1"
-thiserror = "1.0.30"
+thiserror = "2.0.9"
 tokio = { version = "1.12.0", features = ["macros", "rt-multi-thread"] }
 url = "2.2.2"
 xml-rs = "0.8.4"
