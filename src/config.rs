@@ -113,18 +113,24 @@ impl Config {
                 .take(len)
                 // create a cartesian product of these combinations
                 .multi_cartesian_product()
-                .map(|language_list| {
+                .filter_map(|language_list| {
+                    if language_list.is_empty() {
+                        return None;
+                    }
+
                     // create a joined header-value for the list of combinations
                     // language-list is made unique
-                    HeaderValue::from_str(
-                        &(language_list
-                            .iter()
-                            .unique()
-                            .cloned()
-                            .collect::<Vec<String>>()
-                            .join(", ")),
+                    Some(
+                        HeaderValue::from_str(
+                            &(language_list
+                                .iter()
+                                .unique()
+                                .cloned()
+                                .collect::<Vec<String>>()
+                                .join(", ")),
+                        )
+                        .unwrap(),
                     )
-                    .unwrap()
                 })
                 .collect::<Vec<HeaderValue>>(),
         );
