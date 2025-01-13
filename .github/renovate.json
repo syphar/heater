@@ -1,0 +1,12 @@
+{
+  "extends": [
+    "config:best-practices",
+    "schedule:nonOfficeHours",
+    ":pinAllExceptPeerDependencies",
+    ":maintainLockFilesWeekly",
+    ":prConcurrentLimitNone",
+    ":prHourlyLimitNone",
+    ":automergeLinters",
+    ":automergeTesters"
+  ]
+}
