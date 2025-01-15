@@ -11,7 +11,7 @@ repository = "https://github.com/syphar/heater/"
 readme = "README.md"
 
 [dependencies]
-anyhow = "1.0.44"
+anyhow = "1.0.95"
 async-recursion = "1.0.0"
 clap = { version = "4.1.1", features = ["cargo"] }
 console = { version = "0.15.0", default-features = false }
