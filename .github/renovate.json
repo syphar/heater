@@ -1,12 +1,37 @@
 {
   "extends": [
-    "config:best-practices",
+    "config:recommended",
     "schedule:nonOfficeHours",
-    ":pinAllExceptPeerDependencies",
-    ":maintainLockFilesWeekly",
     ":prConcurrentLimitNone",
     ":prHourlyLimitNone",
     ":automergeLinters",
     ":automergeTesters"
+  ],
+  "packageRules": [
+    {
+      "managers": [
+        "cargo"
+      ],
+      "groupName": "Rust Lockfile Updates",
+      "schedule": [
+        "every weekend"
+      ],
+      "enabled": true,
+      "updateTypes": [
+        "lockFileMaintenance"
+      ]
+    },
+    {
+      "managers": [
+        "cargo"
+      ],
+      "groupName": "Rust Dependencies (Semver Incompatibles)",
+      "separateMajorMinor": true,
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "dependencyDashboardApproval": true
+    }
   ]
 }
