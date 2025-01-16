@@ -14,7 +14,7 @@
       ],
       "groupName": "Rust Lockfile Updates",
       "schedule": [
-        "schedule:daily"
+        "before 5:00am"
       ],
       "enabled": true,
       "updateTypes": [
