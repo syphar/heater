@@ -14,7 +14,7 @@
       ],
       "groupName": "Rust Lockfile Updates",
       "schedule": [
-        "daily"
+        "schedule:daily"
       ],
       "enabled": true,
       "updateTypes": [
@@ -26,7 +26,6 @@
         "cargo"
       ],
       "groupName": "Rust Dependencies (Semver Incompatibles)",
-      "separateMajorMinor": true,
       "matchUpdateTypes": [
         "major",
         "minor"
