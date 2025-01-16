@@ -14,7 +14,7 @@
       ],
       "groupName": "Rust Lockfile Updates",
       "schedule": [
-        "every weekend"
+        "daily"
       ],
       "enabled": true,
       "updateTypes": [
