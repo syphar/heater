@@ -1,4 +1,5 @@
 {
+  "mschema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
     "schedule:nonOfficeHours",
@@ -7,30 +8,20 @@
     ":automergeLinters",
     ":automergeTesters"
   ],
-  "packageRules": [
-    {
-      "managers": [
-        "cargo"
-      ],
-      "groupName": "Rust Lockfile Updates",
-      "schedule": [
-        "before 5:00am"
-      ],
-      "enabled": true,
-      "updateTypes": [
-        "lockFileMaintenance"
-      ]
-    },
-    {
-      "managers": [
-        "cargo"
-      ],
-      "groupName": "Rust Dependencies (Semver Incompatibles)",
-      "matchUpdateTypes": [
-        "major",
-        "minor"
-      ],
-      "dependencyDashboardApproval": true
-    }
-  ]
+  "labels": [
+    "📦 dependencies"
+  ],
+  "semanticCommits": "enabled",
+  "semanticCommitType": "build",
+  "rangeStrategy": "bump",
+  "rebaseWhen": "conflicted",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "extends": [
+      "schedule:weekly"
+    ],
+    "groupName": "lockfile maintenance",
+    "automerge": false
+  },
+  "packageRules": []
 }
