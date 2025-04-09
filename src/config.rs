@@ -109,8 +109,7 @@ impl Config {
 
         response.extend(
             // duplicate the language list x times, where x is the amount of languages
-            iter::repeat(languages)
-                .take(len)
+            iter::repeat_n(languages, len)
                 // create a cartesian product of these combinations
                 .multi_cartesian_product()
                 .filter_map(|language_list| {
