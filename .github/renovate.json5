@@ -6,7 +6,7 @@
     ":prHourlyLimitNone",
   ],
   "semanticCommits": "enabled",
-  "rangeStrategy": "replace",
+  "rangeStrategy": "auto",
   "rebaseWhen": "conflicted",
   "lockFileMaintenance": {
     "enabled": true,
