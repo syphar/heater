@@ -1,11 +1,9 @@
 {
   "extends": [
     "config:recommended",
-    // "schedule:nonOfficeHours",
+    "schedule:nonOfficeHours",
     ":prConcurrentLimitNone",
     ":prHourlyLimitNone",
-    // ":automergeLinters",
-    // ":automergeTesters"
   ],
   "semanticCommits": "enabled",
   "rangeStrategy": "replace",
@@ -16,17 +14,6 @@
       "schedule:weekly"
     ],
     "groupName": "lockfile maintenance",
-    // "automerge": false
   },
-  // "packageRules": [
-  //   {
-  //     // disable minor & patch updates, these are updated via lockfile
-  //     "enabled": false,
-  //     "matchUpdateTypes": [
-  //       "minor",
-  //       "patch",
-  //     ]
-  //   }
-  // ]
 }
 
