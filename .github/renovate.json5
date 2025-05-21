@@ -1,16 +1,16 @@
 {
-  "extends": [
+  extends: [
     "config:recommended",
     "schedule:nonOfficeHours",
     ":prConcurrentLimitNone",
     ":prHourlyLimitNone",
   ],
-  "semanticCommits": "enabled",
-  "rangeStrategy": "replace",
-  "rebaseWhen": "conflicted",
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["before 4am on monday"],
-    "groupName": "lockfile maintenance",
+  semanticCommits: "enabled",
+  rangeStrategy: "replace",
+  rebaseWhen: "conflicted",
+  lockFileMaintenance: {
+    enabled: true,
+    extends: ["schedule:weekly"],
+    groupName: "lockfile maintenance",
   },
 }
