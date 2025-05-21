@@ -1,7 +1,7 @@
 {
   "extends": [
     "config:recommended",
-    "schedule:nonOfficeHours",
+    // "schedule:nonOfficeHours",
     ":prConcurrentLimitNone",
     ":prHourlyLimitNone",
     // ":automergeLinters",
