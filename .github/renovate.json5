@@ -4,15 +4,11 @@
     "schedule:nonOfficeHours",
     ":prConcurrentLimitNone",
     ":prHourlyLimitNone",
-    ":automergeLinters",
-    ":automergeTesters"
-  ],
-  "labels": [
-    "📦 dependencies"
+    // ":automergeLinters",
+    // ":automergeTesters"
   ],
   "semanticCommits": "enabled",
-  "semanticCommitType": "build",
-  "rangeStrategy": "bump",
+  "rangeStrategy": "replace",
   "rebaseWhen": "conflicted",
   "lockFileMaintenance": {
     "enabled": true,
@@ -20,8 +16,17 @@
       "schedule:weekly"
     ],
     "groupName": "lockfile maintenance",
-    "automerge": false
+    // "automerge": false
   },
-  "packageRules": []
+  "packageRules": [
+    {
+      // disable minor & patch updates, these are updated via lockfile
+      "enabled": false,
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+      ]
+    }
+  ]
 }
 
