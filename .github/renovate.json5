@@ -1,0 +1,44 @@
+{
+    extends: [
+        "config:best-practices",
+        ":pinAllExceptPeerDependencies",
+        ":maintainLockFilesWeekly",
+        ":prConcurrentLimitNone",
+        ":prHourlyLimitNone",
+        // ":semanticCommitsDisabled",
+        ":automergeLinters",
+        ":automergeTesters",
+        // "customManagers:dockerfileVersions",
+        // "customManagers:githubActionsVersions",
+        // "github>Turbo87/renovate-config//rust/updateToolchain",
+    ],
+    packageRules: []
+}
+
+// {
+//   "extends": [
+//     "config:recommended",
+//     "schedule:nonOfficeHours",
+//     ":prConcurrentLimitNone",
+//     ":prHourlyLimitNone",
+//     ":automergeLinters",
+//     ":automergeTesters"
+//   ],
+//   "labels": [
+//     "📦 dependencies"
+//   ],
+//   "semanticCommits": "enabled",
+//   "semanticCommitType": "build",
+//   "rangeStrategy": "bump",
+//   "rebaseWhen": "conflicted",
+//   "lockFileMaintenance": {
+//     "enabled": true,
+//     "extends": [
+//       "schedule:weekly"
+//     ],
+//     "groupName": "lockfile maintenance",
+//     "automerge": false
+//   },
+//   "packageRules": []
+// }
+
