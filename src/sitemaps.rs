@@ -36,7 +36,7 @@ where
             SiteMapEntity::Url(url_entry) => match url_entry.loc {
                 Location::None => {}
                 Location::Url(url) => result.push(url),
-                Location::ParseErr(err) => log::warn!("could not parse entry url: {:?}", err),
+                Location::ParseErr(err) => log::warn!("could not parse entry url: {err:?}"),
             },
             SiteMapEntity::SiteMap(sitemap_entry) => match sitemap_entry.loc {
                 Location::None => {}
@@ -44,7 +44,7 @@ where
                     let mut urls = get_inner(client.clone(), url).await?;
                     result.append(&mut urls);
                 }
-                Location::ParseErr(err) => log::warn!("could not parse sitemap url: {:?}", err),
+                Location::ParseErr(err) => log::warn!("could not parse sitemap url: {err:?}"),
             },
             SiteMapEntity::Err(err) => return Err(SiteMapError::XmlError(err)),
         }

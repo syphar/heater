@@ -76,7 +76,7 @@ async fn heat_one<T: IntoUrl>(
                         .filter_map(|s| s.parse::<HeaderName>().ok())
                     {
                         if !(headers.contains_key(&header_name)) {
-                            log::warn!("received Vary header '{}' that is missing in configured header variations", header_name);
+                            log::warn!("received Vary header '{header_name}' that is missing in configured header variations");
                         }
                     }
                 }

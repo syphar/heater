@@ -48,7 +48,7 @@ pub async fn main() -> Result<()> {
 
     let sitemap_url = matches.get_one::<String>("sitemap_url").unwrap();
 
-    info!("fetching sitemap from {}", sitemap_url);
+    info!("fetching sitemap from {sitemap_url}");
 
     let urls: Vec<Url> = sitemaps::get(sitemap_url).await?;
 
