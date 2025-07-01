@@ -14,7 +14,7 @@ readme = "README.md"
 anyhow = "1.0.44"
 async-recursion = "1.0.0"
 clap = { version = "4.1.1", features = ["cargo"] }
-console = { version = "0.16.0", default-features = false }
+console = { version = "0.16.0", default-features = false, features = ["std"] }
 counter = "0.6.0"
 futures = { version = "0.3.17", default-features = false, features = ["alloc"] }
 histogram = "0.11.1"
