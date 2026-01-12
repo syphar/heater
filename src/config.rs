@@ -151,10 +151,9 @@ impl Config {
         // with all possible values for that header
         let v: Vec<Vec<(HeaderName, HeaderValue)>> = header_variations
             .keys()
-            .cloned()
             .map(|k| {
                 header_variations
-                    .get_all(&k)
+                    .get_all(k)
                     .iter()
                     .cloned()
                     .map(|v| (k.clone(), v))
