@@ -38,6 +38,6 @@ url = "2.2.2"
 xml = "1.0.0"
 
 [dev-dependencies]
-cargo-llvm-cov = "0.6.6"
+cargo-llvm-cov = "0.7.0"
 mockito = "1.0.2"
 test-case = "3.1.0"
