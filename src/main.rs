@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{command, crate_authors, crate_name, crate_version, Arg, ArgAction};
 use console::style;
+use histogram::SampleQuantiles;
 use log::info;
 use url::Url;
 
@@ -72,7 +73,10 @@ pub async fn main() -> Result<()> {
     println!();
     println!("\t{}", style("Response times:").bold());
     for p in &[50.0, 90.0, 99.0] {
-        let bucket = histogram.percentile(*p).unwrap().unwrap();
+        let quantiles = SampleQuantiles::quantile(&histogram, *p / 100.0)
+            .unwrap()
+            .unwrap();
+        let bucket = quantiles.entries().values().next().unwrap();
         println!(
             "\tp{:.0}: {:>5}ms - {:>5}ms",
             style(p).bold(),
